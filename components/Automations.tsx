@@ -1,14 +1,15 @@
 
 import React, { useState } from 'react';
-import { Automation } from '../types';
+import { Automation, AnalyticsEvent } from '../types';
 import { Zap, MessageCircle, Mail, Clock, PlayCircle, PauseCircle, Plus, X, Save, Activity } from 'lucide-react';
 
 interface AutomationsProps {
   automations: Automation[];
+  events?: AnalyticsEvent[];
   onUpdate: (automations: Automation[]) => void;
 }
 
-const Automations: React.FC<AutomationsProps> = ({ automations, onUpdate }) => {
+const Automations: React.FC<AutomationsProps> = ({ automations, events = [], onUpdate }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
       name: '',
@@ -39,13 +40,11 @@ const Automations: React.FC<AutomationsProps> = ({ automations, onUpdate }) => {
     setFormData({ name: '', type: 'Email', trigger: '' });
   };
 
-  // Simulate recent logs based on stats
-  const recentExecutions = automations.filter(a => a.stats.sent > 0).map(a => ({
-      id: a.id,
-      name: a.name,
-      time: 'Just now',
-      status: 'Success'
-  }));
+  // Real logs from DB events
+  const automationLogs = events
+    .filter(e => e.type === 'automation_triggered')
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 10);
 
   return (
     <div className="space-y-8 animate-fade-in relative">
@@ -117,15 +116,18 @@ const Automations: React.FC<AutomationsProps> = ({ automations, onUpdate }) => {
       </div>
 
       {/* Real-time Logs */}
-      {recentExecutions.length > 0 && (
+      {automationLogs.length > 0 && (
           <div className="bg-slate-950 rounded-2xl p-6 border border-slate-800 font-mono text-sm">
               <h3 className="text-slate-400 font-bold mb-4 flex items-center gap-2">
                   <Activity size={16} /> Live Execution Log
               </h3>
               <div className="space-y-2">
-                  {recentExecutions.map((exec, i) => (
+                  {automationLogs.map((exec, i) => (
                       <div key={i} className="flex justify-between text-slate-300 border-b border-slate-800 pb-2 last:border-0 last:pb-0">
-                          <span>[AUTO-RUN] Triggered workflow: <span className="text-primary-400">{exec.name}</span></span>
+                          <span>
+                            <span className="text-slate-500 mr-2">[{new Date(exec.createdAt).toLocaleTimeString()}]</span> 
+                            Triggered: <span className="text-primary-400">{exec.metadata?.workflow}</span> for {exec.metadata?.client}
+                          </span>
                           <span className="text-green-400">SUCCESS</span>
                       </div>
                   ))}

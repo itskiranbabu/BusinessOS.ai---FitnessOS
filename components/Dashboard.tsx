@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Users, DollarSign, TrendingUp, Activity, ArrowUpRight, Save, Check, X, Bell, Globe } from 'lucide-react';
+import { Users, DollarSign, TrendingUp, Activity, ArrowUpRight, Save, Check, X, Bell, Globe, Loader2 } from 'lucide-react';
 import { BusinessBlueprint, Client, ClientStatus, AnalyticsEvent } from '../types';
 
 interface DashboardProps {
@@ -10,7 +10,7 @@ interface DashboardProps {
   clients: Client[];
   events?: AnalyticsEvent[];
   isDarkMode?: boolean;
-  onUpdateClient?: (id: string, updates: Partial<Client>) => void;
+  onUpdateClient?: (id: string, updates: Partial<Client>) => Promise<void> | void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ blueprint, revenueData, clients, events = [], isDarkMode = false, onUpdateClient }) => {
@@ -19,6 +19,7 @@ const Dashboard: React.FC<DashboardProps> = ({ blueprint, revenueData, clients, 
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedProgram, setSelectedProgram] = useState('');
   const [invoiceAmount, setInvoiceAmount] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
   const getPrice = () => {
     try {
@@ -42,13 +43,21 @@ const Dashboard: React.FC<DashboardProps> = ({ blueprint, revenueData, clients, 
     setIsSaving(false);
   };
 
-  const handleAssignWorkout = () => {
+  const handleAssignWorkout = async () => {
     if (onUpdateClient && selectedClientId) {
-      onUpdateClient(selectedClientId, { program: selectedProgram });
-      setActiveAction(null);
-      setSelectedClientId('');
-      setSelectedProgram('');
-      alert("Workout assigned successfully!");
+      setActionLoading(true);
+      try {
+        await onUpdateClient(selectedClientId, { program: selectedProgram });
+        setActiveAction(null);
+        setSelectedClientId('');
+        setSelectedProgram('');
+        alert("Workout assigned and saved to database successfully!");
+      } catch (e) {
+        console.error("Assign failed", e);
+        alert("Failed to assign workout. Please try again.");
+      } finally {
+        setActionLoading(false);
+      }
     }
   };
 
@@ -227,14 +236,20 @@ const Dashboard: React.FC<DashboardProps> = ({ blueprint, revenueData, clients, 
                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                       event.type === 'lead_created' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
                       event.type === 'page_view' ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' :
+                      event.type === 'automation_triggered' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' :
                       'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
                    }`}>
-                      {event.type === 'lead_created' ? <Bell size={14} /> : event.type === 'page_view' ? <Globe size={14} /> : <DollarSign size={14} />}
+                      {event.type === 'lead_created' ? <Bell size={14} /> : 
+                       event.type === 'page_view' ? <Globe size={14} /> : 
+                       event.type === 'automation_triggered' ? <Activity size={14} /> :
+                       <DollarSign size={14} />}
                    </div>
                    <div>
                       <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">
                         {event.type === 'lead_created' ? 'New Lead Captured' : 
-                         event.type === 'page_view' ? 'Website Visit' : 'Conversion Event'}
+                         event.type === 'page_view' ? 'Website Visit' : 
+                         event.type === 'automation_triggered' ? 'Automation Ran' :
+                         'Conversion Event'}
                       </p>
                       <p className="text-xs text-slate-500">{new Date(event.createdAt).toLocaleTimeString()}</p>
                    </div>
@@ -297,10 +312,10 @@ const Dashboard: React.FC<DashboardProps> = ({ blueprint, revenueData, clients, 
                     
                     <button 
                         onClick={activeAction === 'workout' ? handleAssignWorkout : handleCreateInvoice}
-                        disabled={!selectedClientId || (activeAction === 'workout' ? !selectedProgram : !invoiceAmount)}
+                        disabled={!selectedClientId || (activeAction === 'workout' ? !selectedProgram : !invoiceAmount) || actionLoading}
                         className="w-full bg-primary-600 text-white py-3.5 rounded-xl font-bold hover:bg-primary-500 mt-2 flex items-center justify-center gap-2 disabled:opacity-50 transition-all shadow-lg shadow-primary-600/25"
                     >
-                        {activeAction === 'workout' ? 'Deploy Plan' : 'Generate Link'}
+                        {actionLoading ? <Loader2 className="animate-spin" size={20} /> : activeAction === 'workout' ? 'Deploy Plan' : 'Generate Link'}
                     </button>
                 </div>
             </div>

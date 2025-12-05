@@ -39,7 +39,10 @@ export const storageService = {
               last_updated: saveData.lastUpdated
             });
 
-          if (error) throw error;
+          if (error) {
+              console.error("Supabase Save Error:", error.message, error.details);
+              throw error;
+          }
           console.log('Project saved to Supabase');
           return true;
         }

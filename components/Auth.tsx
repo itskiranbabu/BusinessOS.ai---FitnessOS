@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Lock, Mail, ArrowRight, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { authService } from '../services/authService';
@@ -8,8 +9,8 @@ interface AuthProps {
 
 const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('demo@businessos.ai');
-  const [password, setPassword] = useState('demo123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,12 +30,19 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       }
 
       if (result.error) {
-        setError(result.error);
+        // Parse Supabase errors for better UX
+        if (result.error.includes("Invalid login credentials")) {
+            setError("Incorrect email or password.");
+        } else if (result.error.includes("User already registered")) {
+            setError("Account already exists. Please sign in.");
+        } else {
+            setError(result.error);
+        }
       } else if (result.user) {
         onLogin(result.user.email);
       }
     } catch (err) {
-      setError("An unexpected error occurred.");
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -161,9 +169,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             
             <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center">
                 <p className="text-xs text-slate-400 dark:text-slate-500">
-                {process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL ? 
-                    'Connected to Supabase Secure Auth' : 
-                    'Demo Mode (Default credentials pre-filled)'}
+                    BusinessOS.ai Secure Login
                 </p>
             </div>
         </div>

@@ -157,13 +157,15 @@ const App: React.FC = () => {
     updatedClients?: Client[],
     updatedAutomations?: Automation[],
     updatedLeads?: Lead[],
-    updatedGrowthPlan?: GrowthPlan
+    updatedGrowthPlan?: GrowthPlan,
+    updatedEvents?: AnalyticsEvent[]
   ) => {
     const bp = updatedBlueprint || blueprint;
     const cl = updatedClients || clients;
     const au = updatedAutomations || automations;
     const le = updatedLeads || leads;
     const gp = updatedGrowthPlan || growthPlan;
+    const ev = updatedEvents || events;
 
     if (bp) {
       const projectData: ProjectData = {
@@ -171,7 +173,7 @@ const App: React.FC = () => {
         clients: cl,
         automations: au,
         leads: le,
-        events: events,
+        events: ev,
         growthPlan: gp
       };
       await storageService.saveProject(projectData);
@@ -244,7 +246,7 @@ const App: React.FC = () => {
     setAutomations(initialAutomations);
     fetchRevenueData().then(setRevenueData);
     setHasOnboarded(true);
-    await handleSaveProject(data, initialClients, initialAutomations, [], undefined);
+    await handleSaveProject(data, initialClients, initialAutomations, [], undefined, []);
     addToast('Business initialized successfully!', 'success');
   };
 
@@ -263,7 +265,7 @@ const App: React.FC = () => {
     };
     
     const updatedClients = [...clients, newClient];
-    handleUpdateClients(updatedClients);
+    setClients(updatedClients); // Update state first for UI
     addToast('Client added successfully', 'success');
 
     // Trigger Automations Logic
@@ -272,8 +274,11 @@ const App: React.FC = () => {
       (a.trigger.toLowerCase().includes('sign up') || a.trigger.toLowerCase().includes('new lead') || a.trigger.toLowerCase().includes('client'))
     );
 
+    let updatedAutomations = [...automations];
+    let newEvents = [...events];
+
     if (triggeredAutomations.length > 0) {
-      const updatedAutomations = automations.map(a => {
+      updatedAutomations = automations.map(a => {
         if (triggeredAutomations.find(t => t.id === a.id)) {
           return {
             ...a,
@@ -282,7 +287,18 @@ const App: React.FC = () => {
         }
         return a;
       });
-      handleUpdateAutomations(updatedAutomations);
+      setAutomations(updatedAutomations);
+
+      // Create Trigger Events
+      const triggerEvents: AnalyticsEvent[] = triggeredAutomations.map(a => ({
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'automation_triggered',
+        createdAt: new Date().toISOString(),
+        metadata: { workflow: a.name, client: newClient.name }
+      }));
+      
+      newEvents = [...events, ...triggerEvents];
+      setEvents(newEvents);
       
       triggeredAutomations.forEach(a => {
         setTimeout(() => {
@@ -290,11 +306,15 @@ const App: React.FC = () => {
         }, 1000);
       });
     }
+
+    // Single Save Operation for Consistency
+    handleSaveProject(undefined, updatedClients, updatedAutomations, undefined, undefined, newEvents);
   };
 
-  const handleUpdateClient = (id: string, updates: Partial<Client>) => {
+  const handleUpdateClient = async (id: string, updates: Partial<Client>) => {
     const updated = clients.map(c => c.id === id ? { ...c, ...updates } : c);
-    handleUpdateClients(updated);
+    setClients(updated);
+    await handleSaveProject(undefined, updated);
     addToast('Client updated', 'success');
   };
 
@@ -392,7 +412,7 @@ const App: React.FC = () => {
             blueprint={blueprint} 
             revenueData={revenueData} 
             clients={clients} 
-            events={events} // Pass events
+            events={events} 
             isDarkMode={isDarkMode} 
             onUpdateClient={handleUpdateClient} 
         />;
@@ -405,7 +425,7 @@ const App: React.FC = () => {
       case AppView.CONTENT:
         return <ContentEngine blueprint={blueprint} onUpdatePlan={handleUpdateContentPlan} onRegenerate={handleRegenerateContent} />;
       case AppView.AUTOMATIONS:
-        return <Automations automations={automations} onUpdate={handleUpdateAutomations} />;
+        return <Automations automations={automations} events={events} onUpdate={handleUpdateAutomations} />;
       case AppView.PAYMENTS:
         return <Payments blueprint={blueprint} clients={clients} />;
       case AppView.GROWTH:

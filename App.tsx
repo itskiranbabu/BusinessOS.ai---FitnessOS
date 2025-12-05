@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -23,7 +24,7 @@ import { Loader2 } from 'lucide-react';
 
 const App: React.FC = () => {
   const isPublicRoute = window.location.pathname.startsWith('/p/');
-  const [isDarkMode, setIsDarkMode] = useState(true); // Default to Dark for premium feel
+  const [isDarkMode, setIsDarkMode] = useState(true); 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
@@ -72,17 +73,16 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Poll for data updates (Leads/Events)
+  // Poll for data updates
   useEffect(() => {
     if (isAuthenticated && hasOnboarded) {
         const interval = setInterval(async () => {
             const saved = await storageService.loadProject();
             if (saved) {
-                // Only update if count changed to avoid re-renders
                 if (saved.data.leads.length !== leads.length) setLeads(saved.data.leads);
                 if (saved.data.events.length !== events.length) setEvents(saved.data.events);
             }
-        }, 10000); // Poll every 10s
+        }, 10000); 
         return () => clearInterval(interval);
     }
   }, [isAuthenticated, hasOnboarded, leads.length, events.length]);
@@ -116,32 +116,41 @@ const App: React.FC = () => {
     return () => { if (subscription) subscription.unsubscribe(); };
   }, []);
 
+  // LOAD PROJECT LOGIC
   useEffect(() => {
-    if (isPublicRoute) { loadSavedProject(); return; }
-    if (isAuthenticated) { loadSavedProject(); }
+    const loadData = async () => {
+        setIsLoading(true);
+        if (isPublicRoute) {
+             const slug = window.location.pathname.split('/p/')[1];
+             const saved = await storageService.loadPublicProjectBySlug(slug);
+             if (saved) {
+                 setBlueprint(saved.data.blueprint);
+             } else {
+                 setBlueprint(null); // Site not found
+             }
+        } else if (isAuthenticated) {
+            const saved = await storageService.loadProject();
+            if (saved) {
+                setBlueprint(saved.data.blueprint);
+                setClients(saved.data.clients);
+                setAutomations(saved.data.automations || []);
+                setLeads(saved.data.leads || []);
+                setEvents(saved.data.events || []);
+                setGrowthPlan(saved.data.growthPlan);
+                fetchRevenueData().then(setRevenueData);
+                setHasOnboarded(true);
+                addToast('Project loaded successfully', 'success');
+            } else {
+                setAutomations([
+                    { id: '1', name: 'Weekly Client Check-in', type: 'WhatsApp', trigger: 'Every Monday 8AM', status: 'Active', stats: { sent: 0, opened: '0%' } },
+                    { id: '2', name: 'New Lead Welcome', type: 'Email', trigger: 'On Sign Up', status: 'Active', stats: { sent: 0, opened: '0%' } },
+                ]);
+            }
+        }
+        setIsLoading(false);
+    };
+    loadData();
   }, [isAuthenticated, isPublicRoute]);
-
-  const loadSavedProject = async () => {
-    setIsLoading(true);
-    const saved = await storageService.loadProject();
-    if (saved) {
-      setBlueprint(saved.data.blueprint);
-      setClients(saved.data.clients);
-      setAutomations(saved.data.automations || []);
-      setLeads(saved.data.leads || []);
-      setEvents(saved.data.events || []);
-      setGrowthPlan(saved.data.growthPlan);
-      fetchRevenueData().then(setRevenueData);
-      setHasOnboarded(true);
-      if (!isPublicRoute) addToast('Project loaded successfully', 'success');
-    } else {
-      setAutomations([
-        { id: '1', name: 'Weekly Client Check-in', type: 'WhatsApp', trigger: 'Every Monday 8AM', status: 'Active', stats: { sent: 0, opened: '0%' } },
-        { id: '2', name: 'New Lead Welcome', type: 'Email', trigger: 'On Sign Up', status: 'Active', stats: { sent: 0, opened: '0%' } },
-      ]);
-    }
-    setIsLoading(false);
-  };
 
   const handleSaveProject = async (
     updatedBlueprint?: BusinessBlueprint, 
@@ -257,9 +266,10 @@ const App: React.FC = () => {
     handleUpdateClients(updatedClients);
     addToast('Client added successfully', 'success');
 
+    // Trigger Automations Logic
     const triggeredAutomations = automations.filter(a => 
       a.status === 'Active' && 
-      (a.trigger.toLowerCase().includes('sign up') || a.trigger.toLowerCase().includes('new lead'))
+      (a.trigger.toLowerCase().includes('sign up') || a.trigger.toLowerCase().includes('new lead') || a.trigger.toLowerCase().includes('client'))
     );
 
     if (triggeredAutomations.length > 0) {
@@ -378,7 +388,14 @@ const App: React.FC = () => {
     if (!blueprint) return null;
     switch (currentView) {
       case AppView.DASHBOARD:
-        return <Dashboard blueprint={blueprint} revenueData={revenueData} clients={clients} isDarkMode={isDarkMode} onUpdateClient={handleUpdateClient} />;
+        return <Dashboard 
+            blueprint={blueprint} 
+            revenueData={revenueData} 
+            clients={clients} 
+            events={events} // Pass events
+            isDarkMode={isDarkMode} 
+            onUpdateClient={handleUpdateClient} 
+        />;
       case AppView.CRM:
         return <CRM clients={clients} onAddClient={handleAddClient} onUpdateClient={handleUpdateClient} onDeleteClient={handleDeleteClient} />;
       case AppView.LEADS:

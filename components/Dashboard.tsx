@@ -1,17 +1,19 @@
+
 import React, { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Users, DollarSign, TrendingUp, Activity, ArrowUpRight, Save, Check, X, Bell } from 'lucide-react';
+import { Users, DollarSign, TrendingUp, Activity, ArrowUpRight, Save, Check, X, Bell, Globe } from 'lucide-react';
 import { BusinessBlueprint, Client, ClientStatus, AnalyticsEvent } from '../types';
 
 interface DashboardProps {
   blueprint: BusinessBlueprint;
   revenueData: any[];
   clients: Client[];
+  events?: AnalyticsEvent[];
   isDarkMode?: boolean;
   onUpdateClient?: (id: string, updates: Partial<Client>) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ blueprint, revenueData, clients, isDarkMode = false, onUpdateClient }) => {
+const Dashboard: React.FC<DashboardProps> = ({ blueprint, revenueData, clients, events = [], isDarkMode = false, onUpdateClient }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [activeAction, setActiveAction] = useState<'workout' | 'invoice' | null>(null);
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -61,6 +63,9 @@ const Dashboard: React.FC<DashboardProps> = ({ blueprint, revenueData, clients, 
     }
   };
 
+  // Get recent 5 events
+  const recentEvents = [...events].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
+
   return (
     <div className="space-y-8 animate-fade-in relative max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
@@ -79,7 +84,10 @@ const Dashboard: React.FC<DashboardProps> = ({ blueprint, revenueData, clients, 
              {isSaving ? <Check size={18} className="text-green-500" /> : <Save size={18} />}
              {isSaving ? 'Saved' : 'Save Changes'}
            </button>
-           <button className="flex-1 md:flex-none bg-primary-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-500 flex items-center justify-center gap-2 shadow-lg shadow-primary-600/20 transition-all hover:-translate-y-0.5">
+           <button 
+             onClick={() => window.location.hash = '#crm'} 
+             className="flex-1 md:flex-none bg-primary-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-500 flex items-center justify-center gap-2 shadow-lg shadow-primary-600/20 transition-all hover:-translate-y-0.5"
+           >
              <ArrowUpRight size={18} /> New Client
            </button>
         </div>
@@ -212,24 +220,26 @@ const Dashboard: React.FC<DashboardProps> = ({ blueprint, revenueData, clients, 
                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             </div>
              <div className="space-y-4">
-               <div className="flex gap-3">
-                 <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                    <Bell size={14} />
+               {recentEvents.length === 0 ? (
+                 <div className="text-xs text-slate-500 text-center py-4">No recent activity. Share your site!</div>
+               ) : recentEvents.map(event => (
+                 <div key={event.id} className="flex gap-3 animate-slide-up">
+                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                      event.type === 'lead_created' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
+                      event.type === 'page_view' ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' :
+                      'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                   }`}>
+                      {event.type === 'lead_created' ? <Bell size={14} /> : event.type === 'page_view' ? <Globe size={14} /> : <DollarSign size={14} />}
+                   </div>
+                   <div>
+                      <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">
+                        {event.type === 'lead_created' ? 'New Lead Captured' : 
+                         event.type === 'page_view' ? 'Website Visit' : 'Conversion Event'}
+                      </p>
+                      <p className="text-xs text-slate-500">{new Date(event.createdAt).toLocaleTimeString()}</p>
+                   </div>
                  </div>
-                 <div>
-                    <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">New Lead: Sarah K.</p>
-                    <p className="text-xs text-slate-500">2 minutes ago</p>
-                 </div>
-               </div>
-               <div className="flex gap-3">
-                 <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
-                    <DollarSign size={14} />
-                 </div>
-                 <div>
-                    <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">Payment Received</p>
-                    <p className="text-xs text-slate-500">1 hour ago</p>
-                 </div>
-               </div>
+               ))}
              </div>
           </div>
         </div>

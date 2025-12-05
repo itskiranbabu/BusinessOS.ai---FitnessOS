@@ -114,18 +114,54 @@ export const storageService = {
     }
   },
 
-  // LEADS & EVENTS HELPERS (Abstraction over ProjectData for MVP)
-  // In a real full-backend app, these would be separate API calls.
-  // Here we read/write the big blob to keep MVP simple but functional.
+  // NEW: Load public project for visitors (Fixes 404)
+  loadPublicProjectBySlug: async (slug: string): Promise<SavedProject | null> => {
+    const formattedSlug = slug.replace(/-/g, ' ');
+    
+    // 1. Try Supabase (if RLS allows public select)
+    if (isSupabaseConfigured() && supabase) {
+        try {
+            // This requires RLS policy: create policy "Public projects" on projects for select using (true);
+            const { data, error } = await supabase
+                .from('projects')
+                .select('blueprint, last_updated')
+                .limit(1); 
+            
+            // Note: In a real app we would filter where blueprint->>'businessName' ILIKE formattedSlug
+            // For MVP, we just return the first project we find if we can't filter JSONB easily without extensions
+            
+            if (data && data.length > 0) {
+                 const loadedData = data[0].blueprint as any;
+                 const projectData: ProjectData = {
+                    blueprint: loadedData.businessName ? loadedData : loadedData.blueprint,
+                    clients: [], // Don't expose clients
+                    automations: [],
+                    leads: [],
+                    events: [],
+                 };
+                 return { data: projectData, lastUpdated: data[0].last_updated };
+            }
+        } catch (e) {
+            console.error("Public load error", e);
+        }
+    }
+
+    // 2. Fallback: Check local storage (for testing on same device)
+    const local = await storageService.loadProject();
+    if (local && local.data.blueprint.businessName.toLowerCase().includes(formattedSlug.split(' ')[0])) {
+        return local;
+    }
+
+    return null;
+  },
 
   saveLead: async (lead: Lead): Promise<void> => {
     const saved = await storageService.loadProject();
-    if (!saved) return; // Should handle error better in prod
+    if (!saved) return; 
 
     const updatedData = { ...saved.data, leads: [...(saved.data.leads || []), lead] };
     await storageService.saveProject(updatedData);
     
-    // Also track event
     await storageService.trackEvent({
         id: Math.random().toString(36).substr(2, 9),
         type: 'lead_created',

@@ -15,14 +15,10 @@ const WebsiteBuilder: React.FC<WebsiteBuilderProps> = ({ blueprint, onUpdate, on
   const [editData, setEditData] = useState<WebsiteData>(websiteData);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   
-  // Publishing State
   const [isPublishing, setIsPublishing] = useState(false);
-  
-  // Simulation State
   const [demoEmail, setDemoEmail] = useState('');
   const [demoSubmitted, setDemoSubmitted] = useState(false);
 
-  // Sync if prop updates externally
   React.useEffect(() => {
     if (!isEditing) {
       setEditData(websiteData);
@@ -41,13 +37,14 @@ const WebsiteBuilder: React.FC<WebsiteBuilderProps> = ({ blueprint, onUpdate, on
 
   const handlePublish = () => {
     setIsPublishing(true);
-    // Simulate deployment - Point to internal route
     setTimeout(() => {
-        const publicUrl = `${window.location.origin}/p/${blueprint.businessName.toLowerCase().replace(/\s+/g, '-')}`;
+        // Generate a clean slug
+        const slug = blueprint.businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        const publicUrl = `${window.location.origin}/p/${slug}`;
         onUpdate({ publishedUrl: publicUrl });
         setIsPublishing(false);
-        alert(`Website published successfully! Access it here: ${publicUrl}`);
-    }, 2000);
+        window.open(publicUrl, '_blank');
+    }, 1500);
   };
 
   const handleDemoSubmit = (e: React.FormEvent) => {

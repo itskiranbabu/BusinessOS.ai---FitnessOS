@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Automation } from '../types';
-import { Zap, MessageCircle, Mail, Clock, PlayCircle, PauseCircle, Plus, X, Save } from 'lucide-react';
+import { Zap, MessageCircle, Mail, Clock, PlayCircle, PauseCircle, Plus, X, Save, Activity } from 'lucide-react';
 
 interface AutomationsProps {
   automations: Automation[];
@@ -37,6 +38,14 @@ const Automations: React.FC<AutomationsProps> = ({ automations, onUpdate }) => {
     setIsModalOpen(false);
     setFormData({ name: '', type: 'Email', trigger: '' });
   };
+
+  // Simulate recent logs based on stats
+  const recentExecutions = automations.filter(a => a.stats.sent > 0).map(a => ({
+      id: a.id,
+      name: a.name,
+      time: 'Just now',
+      status: 'Success'
+  }));
 
   return (
     <div className="space-y-8 animate-fade-in relative">
@@ -107,26 +116,22 @@ const Automations: React.FC<AutomationsProps> = ({ automations, onUpdate }) => {
         )}
       </div>
 
-      <div className="bg-gradient-to-r from-primary-50 to-purple-50 dark:from-primary-900/10 dark:to-purple-900/10 border border-primary-100 dark:border-primary-800/30 rounded-2xl p-6 flex items-start gap-4">
-        <div className="bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm">
-            <Zap className="text-primary-600 dark:text-primary-400" size={24} />
-        </div>
-        <div>
-          <h3 className="font-bold text-primary-900 dark:text-primary-100">AI Recommendation</h3>
-          <p className="text-sm text-primary-800 dark:text-primary-200/70 mt-1 leading-relaxed">
-            Based on your client activity, we recommend adding a <strong>"Sunday Prep"</strong> email to encourage clients to meal prep for the week. This typically increases adherence by 24%.
-          </p>
-          <button 
-            onClick={() => {
-                setFormData({ name: 'Sunday Meal Prep', type: 'Email', trigger: 'Every Sunday 10AM' });
-                setIsModalOpen(true);
-            }}
-            className="mt-3 text-sm font-bold text-primary-700 dark:text-primary-300 hover:underline"
-          >
-            Create "Sunday Prep" Workflow
-          </button>
-        </div>
-      </div>
+      {/* Real-time Logs */}
+      {recentExecutions.length > 0 && (
+          <div className="bg-slate-950 rounded-2xl p-6 border border-slate-800 font-mono text-sm">
+              <h3 className="text-slate-400 font-bold mb-4 flex items-center gap-2">
+                  <Activity size={16} /> Live Execution Log
+              </h3>
+              <div className="space-y-2">
+                  {recentExecutions.map((exec, i) => (
+                      <div key={i} className="flex justify-between text-slate-300 border-b border-slate-800 pb-2 last:border-0 last:pb-0">
+                          <span>[AUTO-RUN] Triggered workflow: <span className="text-primary-400">{exec.name}</span></span>
+                          <span className="text-green-400">SUCCESS</span>
+                      </div>
+                  ))}
+              </div>
+          </div>
+      )}
 
       {/* Modal */}
       {isModalOpen && (

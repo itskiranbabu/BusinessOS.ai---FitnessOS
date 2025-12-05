@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Users, DollarSign, TrendingUp, Activity, ArrowUpRight, Save, Check, X, Bell, Globe, Loader2 } from 'lucide-react';
+import { Users, DollarSign, TrendingUp, Activity, ArrowUpRight, Save, Check, X, Bell, Globe, Loader2, Cpu, ShieldCheck } from 'lucide-react';
 import { BusinessBlueprint, Client, ClientStatus, AnalyticsEvent } from '../types';
 
 interface DashboardProps {
@@ -77,82 +76,97 @@ const Dashboard: React.FC<DashboardProps> = ({ blueprint, revenueData, clients, 
 
   return (
     <div className="space-y-8 animate-fade-in relative max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
+      {/* Header HUD */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-800 pb-6 relative">
+         {/* Decorative decorative lines */}
+         <div className="absolute top-0 left-0 w-20 h-1 bg-cyan-500 rounded-full shadow-[0_0_10px_rgba(34,211,238,0.5)]"></div>
+         
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Dashboard</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
-            Overview for <span className="font-semibold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 px-2 py-0.5 rounded">{blueprint.businessName}</span>
+          <div className="flex items-center gap-3 mb-1">
+             <h1 className="text-3xl font-extrabold text-white tracking-tight uppercase font-mono">Mission Control</h1>
+             <span className="px-2 py-0.5 rounded bg-cyan-900/30 text-cyan-400 text-[10px] font-mono border border-cyan-800">ONLINE</span>
+          </div>
+          <p className="text-slate-400 flex items-center gap-2 text-sm font-mono">
+             SYSTEM: <span className="text-primary-400">{blueprint.businessName.toUpperCase()}</span>
           </p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
            <button 
              onClick={handleSave}
              disabled={isSaving}
-             className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm"
+             className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-900/80 border border-slate-700 text-slate-300 px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 transition-all hover:border-cyan-500/50 hover:text-cyan-400"
            >
              {isSaving ? <Check size={18} className="text-green-500" /> : <Save size={18} />}
-             {isSaving ? 'Saved' : 'Save Changes'}
+             {isSaving ? 'SYNCING...' : 'SYNC DATA'}
            </button>
            <button 
              onClick={() => window.location.hash = '#crm'} 
-             className="flex-1 md:flex-none bg-primary-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-500 flex items-center justify-center gap-2 shadow-lg shadow-primary-600/20 transition-all hover:-translate-y-0.5"
+             className="flex-1 md:flex-none bg-primary-600/90 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-500 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all hover:scale-105 border border-primary-500"
            >
-             <ArrowUpRight size={18} /> New Client
+             <ArrowUpRight size={18} /> NEW OPERATION
            </button>
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - HUD Style */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { 
-            label: 'Monthly Revenue', 
+            label: 'REVENUE', 
             value: `$${currentRevenue.toLocaleString()}`, 
-            sub: '+12.5% vs last month', 
+            sub: '+12.5% M/M', 
             icon: DollarSign, 
-            color: 'text-green-600 dark:text-emerald-400', 
-            bg: 'bg-green-100 dark:bg-emerald-900/20' 
+            color: 'text-cyan-400', 
+            border: 'border-cyan-500/30',
+            glow: 'shadow-[0_0_20px_rgba(34,211,238,0.1)]'
           },
           { 
-            label: 'Active Athletes', 
+            label: 'ACTIVE AGENTS', 
             value: activeClients.toString(), 
-            sub: `${leads} new leads waiting`, 
+            sub: `${leads} PENDING`, 
             icon: Users, 
-            color: 'text-primary-600 dark:text-primary-400', 
-            bg: 'bg-primary-100 dark:bg-primary-900/20' 
+            color: 'text-primary-400', 
+             border: 'border-primary-500/30',
+             glow: 'shadow-[0_0_20px_rgba(99,102,241,0.1)]'
           },
           { 
-            label: 'Adherence Rate', 
+            label: 'COMPLETION', 
             value: '92%', 
-            sub: 'Workout completion', 
+            sub: 'OPTIMAL', 
             icon: Activity, 
-            color: 'text-rose-600 dark:text-rose-400', 
-            bg: 'bg-rose-100 dark:bg-rose-900/20' 
+            color: 'text-green-400', 
+            border: 'border-green-500/30',
+            glow: 'shadow-[0_0_20px_rgba(74,222,128,0.1)]'
           },
           { 
-            label: 'Lead Pipeline', 
+            label: 'LEAD PIPELINE', 
             value: leads.toString(), 
-            sub: 'High intent leads', 
+            sub: 'HIGH INTENT', 
             icon: TrendingUp, 
-            color: 'text-amber-600 dark:text-amber-400', 
-            bg: 'bg-amber-100 dark:bg-amber-900/20' 
+            color: 'text-purple-400', 
+            border: 'border-purple-500/30',
+            glow: 'shadow-[0_0_20px_rgba(192,132,252,0.1)]'
           },
         ].map((stat, i) => (
-          <div key={i} className="glass-panel rounded-2xl p-6 hover:shadow-lg transition-all duration-300 border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900/50 backdrop-blur-sm">
+          <div key={i} className={`relative bg-slate-900/60 backdrop-blur-md rounded-xl p-6 border ${stat.border} ${stat.glow} transition-all duration-300 hover:bg-slate-800/60 group`}>
+            <div className="absolute top-0 right-0 p-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                <div className={`w-1 h-1 rounded-full ${stat.color} bg-current mb-1`}></div>
+                <div className={`w-1 h-1 rounded-full ${stat.color} bg-current`}></div>
+            </div>
             <div className="flex justify-between items-start mb-4">
-              <div className={`p-3 rounded-xl ${stat.bg} ${stat.color}`}>
-                <stat.icon size={22} />
+              <div className={`p-2 rounded bg-white/5 ${stat.color}`}>
+                <stat.icon size={20} />
               </div>
-              <span className={`text-xs font-bold px-2 py-1 rounded-full ${stat.value.includes('+') ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'} dark:bg-white/5 dark:text-slate-300`}>
-                Live
+              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${stat.border} ${stat.color} bg-white/5`}>
+                LIVE
               </span>
             </div>
             <div>
-                <h3 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{stat.value}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">{stat.label}</p>
+                <h3 className="text-3xl font-bold text-white tracking-tight font-mono">{stat.value}</h3>
+                <p className="text-xs text-slate-400 font-bold mt-1 tracking-wider">{stat.label}</p>
             </div>
-            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center gap-2 text-xs font-medium text-slate-400">
-                <TrendingUp size={12} className="text-green-500" /> {stat.sub}
+            <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-2 text-xs font-mono text-slate-500">
+                <TrendingUp size={12} className={stat.color} /> {stat.sub}
             </div>
           </div>
         ))}
@@ -160,12 +174,15 @@ const Dashboard: React.FC<DashboardProps> = ({ blueprint, revenueData, clients, 
 
       {/* Charts & Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm backdrop-blur-sm">
+        <div className="lg:col-span-2 bg-slate-900/60 border border-slate-700/50 rounded-xl p-6 shadow-2xl backdrop-blur-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary-500 to-transparent opacity-50"></div>
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Revenue Trajectory</h3>
-            <select className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm px-3 py-1.5 text-slate-600 dark:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500">
-                <option>Last 6 Months</option>
-                <option>Year to Date</option>
+            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest font-mono flex items-center gap-2">
+                <Activity size={16} className="text-primary-400"/> Revenue Trajectory
+            </h3>
+            <select className="bg-black/40 border border-slate-700 rounded text-xs px-3 py-1 text-slate-300 outline-none focus:border-primary-500 font-mono">
+                <option>T-MINUS 6 MONTHS</option>
+                <option>YEAR TO DATE</option>
             </select>
           </div>
           <div className="h-[320px] w-full">
@@ -173,85 +190,84 @@ const Dashboard: React.FC<DashboardProps> = ({ blueprint, revenueData, clients, 
               <AreaChart data={revenueData}>
                 <defs>
                   <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
                     <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#1e293b' : '#f1f5f9'} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 12}} prefix="$" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.4} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontFamily: 'monospace'}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontFamily: 'monospace'}} prefix="$" />
                 <Tooltip 
                   contentStyle={{
-                      borderRadius: '12px', 
-                      border: 'none', 
-                      boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                      backgroundColor: isDarkMode ? '#0f172a' : '#fff',
-                      color: isDarkMode ? '#fff' : '#000',
-                      padding: '12px'
+                      borderRadius: '8px', 
+                      border: '1px solid #334155', 
+                      boxShadow: '0 0 20px rgba(0,0,0,0.5)',
+                      backgroundColor: '#0f172a',
+                      color: '#fff',
+                      padding: '12px',
+                      fontFamily: 'monospace'
                   }} 
                 />
                 <Area 
                     type="monotone" 
                     dataKey="value" 
                     stroke="#6366f1" 
-                    strokeWidth={3} 
+                    strokeWidth={2} 
                     fillOpacity={1} 
                     fill="url(#colorValue)" 
-                    activeDot={{r: 6, strokeWidth: 0, fill: '#fff'}}
+                    activeDot={{r: 4, strokeWidth: 0, fill: '#fff', stroke: '#6366f1'}}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm backdrop-blur-sm flex flex-col">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Quick Actions</h3>
+        <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-6 shadow-2xl backdrop-blur-sm flex flex-col relative">
+           <div className="absolute top-0 right-0 w-20 h-20 bg-primary-500/10 rounded-bl-full filter blur-xl"></div>
+          <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest font-mono mb-6 flex items-center gap-2">
+             <Cpu size={16} className="text-cyan-400"/> Quick Actions
+          </h3>
           <div className="space-y-4 flex-1">
             <button 
                 onClick={() => setActiveAction('workout')}
-                className="w-full text-left p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-primary-200 dark:hover:border-primary-500/30 transition-all group"
+                className="w-full text-left p-4 rounded-lg border border-slate-700 bg-slate-800/40 hover:bg-slate-800 hover:border-primary-500/50 transition-all group"
             >
-              <span className="block font-bold text-slate-900 dark:text-white">Assign Program</span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 group-hover:text-primary-600 dark:group-hover:text-primary-400">Deploy workout to client &rarr;</span>
+              <span className="block font-bold text-white group-hover:text-primary-400 transition-colors">Assign Program</span>
+              <span className="text-xs text-slate-500 mt-1 font-mono">DEPLOY PROTOCOL &rarr;</span>
             </button>
             <button 
                 onClick={() => setActiveAction('invoice')}
-                className="w-full text-left p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-primary-200 dark:hover:border-primary-500/30 transition-all group"
+                className="w-full text-left p-4 rounded-lg border border-slate-700 bg-slate-800/40 hover:bg-slate-800 hover:border-cyan-500/50 transition-all group"
             >
-              <span className="block font-bold text-slate-900 dark:text-white">Create Invoice</span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 group-hover:text-primary-600 dark:group-hover:text-primary-400">Generate Stripe link &rarr;</span>
+              <span className="block font-bold text-white group-hover:text-cyan-400 transition-colors">Create Invoice</span>
+              <span className="text-xs text-slate-500 mt-1 font-mono">GENERATE LINK &rarr;</span>
             </button>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5">
+          <div className="mt-8 pt-6 border-t border-slate-700/50">
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Live Feed</h3>
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">SYSTEM LOGS</h3>
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
             </div>
              <div className="space-y-4">
                {recentEvents.length === 0 ? (
-                 <div className="text-xs text-slate-500 text-center py-4">No recent activity. Share your site!</div>
+                 <div className="text-xs text-slate-600 text-center py-4 font-mono">NO ACTIVITY DETECTED</div>
                ) : recentEvents.map(event => (
-                 <div key={event.id} className="flex gap-3 animate-slide-up">
-                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                      event.type === 'lead_created' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
-                      event.type === 'page_view' ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' :
-                      event.type === 'automation_triggered' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' :
-                      'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-                   }`}>
-                      {event.type === 'lead_created' ? <Bell size={14} /> : 
-                       event.type === 'page_view' ? <Globe size={14} /> : 
-                       event.type === 'automation_triggered' ? <Activity size={14} /> :
-                       <DollarSign size={14} />}
-                   </div>
+                 <div key={event.id} className="flex gap-3 animate-slide-up group">
+                   <div className={`w-2 h-full min-h-[24px] rounded-full shrink-0 ${
+                      event.type === 'lead_created' ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' :
+                      event.type === 'page_view' ? 'bg-slate-600' :
+                      event.type === 'automation_triggered' ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]' :
+                      'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]'
+                   }`}></div>
                    <div>
-                      <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">
-                        {event.type === 'lead_created' ? 'New Lead Captured' : 
-                         event.type === 'page_view' ? 'Website Visit' : 
-                         event.type === 'automation_triggered' ? 'Automation Ran' :
-                         'Conversion Event'}
+                      <p className="text-xs text-slate-300 font-medium font-mono group-hover:text-white transition-colors">
+                        {event.type === 'lead_created' ? 'NEW LEAD CAPTURED' : 
+                         event.type === 'page_view' ? 'SITE VISIT DETECTED' : 
+                         event.type === 'automation_triggered' ? 'AUTOMATION EXECUTED' :
+                         'CONVERSION RECORDED'}
                       </p>
-                      <p className="text-xs text-slate-500">{new Date(event.createdAt).toLocaleTimeString()}</p>
+                      <p className="text-[10px] text-slate-600 font-mono">{new Date(event.createdAt).toLocaleTimeString()}</p>
                    </div>
                  </div>
                ))}
@@ -260,49 +276,49 @@ const Dashboard: React.FC<DashboardProps> = ({ blueprint, revenueData, clients, 
         </div>
       </div>
 
-      {/* Modals remain functionally same, just styled */}
+      {/* Modals with Dark Sci-Fi Theme */}
       {activeAction && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-up border border-slate-200 dark:border-slate-700">
-                <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                        {activeAction === 'workout' ? 'Assign Workout' : 'Create Invoice'}
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-900 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full max-w-md overflow-hidden animate-slide-up border border-slate-700">
+                <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+                    <h2 className="text-lg font-bold text-white font-mono uppercase tracking-wider">
+                        {activeAction === 'workout' ? 'DEPLOY PROTOCOL' : 'GENERATE INVOICE'}
                     </h2>
-                    <button onClick={() => setActiveAction(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                        <X size={24} />
+                    <button onClick={() => setActiveAction(null)} className="text-slate-500 hover:text-white">
+                        <X size={20} />
                     </button>
                 </div>
-                <div className="p-6 space-y-5">
+                <div className="p-6 space-y-5 bg-slate-900/50">
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Select Client</label>
+                        <label className="block text-xs font-bold text-slate-400 mb-2 font-mono uppercase">Target Agent</label>
                         <select 
-                            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                            className="w-full px-4 py-3 border border-slate-700 rounded-lg bg-black/40 text-white focus:border-primary-500 outline-none transition-all"
                             value={selectedClientId}
                             onChange={(e) => setSelectedClientId(e.target.value)}
                         >
-                            <option value="">-- Choose client --</option>
+                            <option value="">-- SELECT TARGET --</option>
                             {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                     </div>
 
                     {activeAction === 'workout' ? (
                         <div>
-                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Select Program</label>
+                             <label className="block text-xs font-bold text-slate-400 mb-2 font-mono uppercase">Protocol</label>
                              <select 
-                                className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                                className="w-full px-4 py-3 border border-slate-700 rounded-lg bg-black/40 text-white focus:border-primary-500 outline-none transition-all"
                                 value={selectedProgram}
                                 onChange={(e) => setSelectedProgram(e.target.value)}
                              >
-                                <option value="">-- Choose program --</option>
+                                <option value="">-- SELECT PROTOCOL --</option>
                                 {blueprint.suggestedPrograms.map(p => <option key={p} value={p}>{p}</option>)}
                              </select>
                         </div>
                     ) : (
                         <div>
-                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Amount ($)</label>
+                             <label className="block text-xs font-bold text-slate-400 mb-2 font-mono uppercase">Value ($)</label>
                              <input 
                                 type="number"
-                                className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                                className="w-full px-4 py-3 border border-slate-700 rounded-lg bg-black/40 text-white focus:border-primary-500 outline-none transition-all"
                                 placeholder="97.00"
                                 value={invoiceAmount}
                                 onChange={(e) => setInvoiceAmount(e.target.value)}
@@ -313,9 +329,9 @@ const Dashboard: React.FC<DashboardProps> = ({ blueprint, revenueData, clients, 
                     <button 
                         onClick={activeAction === 'workout' ? handleAssignWorkout : handleCreateInvoice}
                         disabled={!selectedClientId || (activeAction === 'workout' ? !selectedProgram : !invoiceAmount) || actionLoading}
-                        className="w-full bg-primary-600 text-white py-3.5 rounded-xl font-bold hover:bg-primary-500 mt-2 flex items-center justify-center gap-2 disabled:opacity-50 transition-all shadow-lg shadow-primary-600/25"
+                        className="w-full bg-primary-600 text-white py-4 rounded-lg font-bold hover:bg-primary-500 mt-2 flex items-center justify-center gap-2 disabled:opacity-50 transition-all font-mono uppercase tracking-wider"
                     >
-                        {actionLoading ? <Loader2 className="animate-spin" size={20} /> : activeAction === 'workout' ? 'Deploy Plan' : 'Generate Link'}
+                        {actionLoading ? <Loader2 className="animate-spin" size={20} /> : activeAction === 'workout' ? 'EXECUTE' : 'GENERATE'}
                     </button>
                 </div>
             </div>

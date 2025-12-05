@@ -1,5 +1,3 @@
-
-
 export enum AppView {
   ONBOARDING = 'ONBOARDING',
   DASHBOARD = 'DASHBOARD',
@@ -67,10 +65,22 @@ export interface SocialPost {
   status?: 'Draft' | 'Scheduled' | 'Published';
 }
 
+export interface FAQItem {
+  question: string;
+  answer: string;
+}
+
 export interface WebsiteData {
   heroHeadline: string;
   heroSubhead: string;
   ctaText: string;
+  problem: string; // "The Agitation"
+  solution: string; // "The Fix"
+  coachBio: {
+    name: string;
+    headline: string;
+    story: string;
+  };
   features: string[];
   pricing: {
     name: string;
@@ -82,6 +92,12 @@ export interface WebsiteData {
     result: string;
     quote: string;
   }[];
+  faq: FAQItem[];
+  urgencySettings?: {
+    enabled: boolean;
+    bannerText: string;
+    spotsLeft: number;
+  };
   publishedUrl?: string;
 }
 

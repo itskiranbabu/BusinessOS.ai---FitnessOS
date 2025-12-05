@@ -2,15 +2,15 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { BusinessBlueprint, SocialPost, GrowthPlan } from "../types";
 
 // Initialize Gemini Client
-// NOTE: Vercel Env Vars are injected via Vite 'define' plugin into process.env
 const apiKey = process.env.API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
 
+// Expanded schema to support High-Conversion Funnel
 const blueprintSchema = {
   type: Type.OBJECT,
   properties: {
     businessName: { type: Type.STRING, description: "A premium, catchy name for the fitness business" },
-    niche: { type: Type.STRING, description: "The specific fitness niche (e.g. Postpartum weight loss, Senior mobility)" },
+    niche: { type: Type.STRING, description: "The specific fitness niche" },
     targetAudience: { type: Type.STRING, description: "Detailed description of the ideal client persona" },
     mission: { type: Type.STRING, description: "A compelling, emotionally resonant mission statement" },
     suggestedPrograms: {
@@ -21,13 +21,22 @@ const blueprintSchema = {
     websiteData: {
       type: Type.OBJECT,
       properties: {
-        heroHeadline: { type: Type.STRING, description: "A high-converting H1 headline" },
-        heroSubhead: { type: Type.STRING, description: "Persuasive H2 subheadline" },
+        heroHeadline: { type: Type.STRING, description: "H1: High-converting promise" },
+        heroSubhead: { type: Type.STRING, description: "H2: How it works / The mechanism" },
         ctaText: { type: Type.STRING, description: "Action-oriented button text" },
+        problem: { type: Type.STRING, description: "Agitate the customer's pain point" },
+        solution: { type: Type.STRING, description: "Present the methodology as the only solution" },
+        coachBio: {
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING },
+            headline: { type: Type.STRING },
+            story: { type: Type.STRING, description: "Short, authority-building backstory" }
+          }
+        },
         features: {
           type: Type.ARRAY,
-          items: { type: Type.STRING },
-          description: "3 key benefits/features that solve pain points"
+          items: { type: Type.STRING }
         },
         pricing: {
           type: Type.ARRAY,
@@ -50,6 +59,17 @@ const blueprintSchema = {
               quote: { type: Type.STRING }
             }
           }
+        },
+        faq: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              question: { type: Type.STRING },
+              answer: { type: Type.STRING }
+            }
+          },
+          description: "3-5 common objections answered"
         }
       }
     },
@@ -60,13 +80,12 @@ const blueprintSchema = {
         properties: {
           id: { type: Type.STRING },
           day: { type: Type.INTEGER },
-          hook: { type: Type.STRING, description: "Viral opening hook" },
-          body: { type: Type.STRING, description: "Educational or entertaining value" },
+          hook: { type: Type.STRING },
+          body: { type: Type.STRING },
           cta: { type: Type.STRING },
           type: { type: Type.STRING, enum: ['Video', 'Image', 'Carousel', 'Text'] }
         }
-      },
-      description: "A 5-day sample content plan optimized for engagement"
+      }
     }
   },
   required: ["businessName", "niche", "websiteData", "contentPlan", "suggestedPrograms"]
@@ -81,22 +100,28 @@ export const generateBusinessBlueprint = async (userDescription: string): Promis
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `ACT AS A WORLD-CLASS BUSINESS STRATEGIST AND MARKETING EXPERT.
+      contents: `ACT AS AN ELITE BUSINESS STRATEGIST (Alex Hormozi / David Goggins hybrid).
       
-      Your goal is to build a highly profitable Fitness Coaching Business Blueprint based on this user input:
-      "${userDescription}"
+      User Input: "${userDescription}"
+
+      Your task: Build a $1M/year fitness coaching offer.
       
-      1. ANALYZE the market gap and ideal customer psychology.
-      2. GENERATE a premium brand identity (Name, Mission).
-      3. WRITE high-conversion website copy (Hormozi-style offers).
-      4. DESIGN a 3-tier pricing strategy (Low barrier, Core Offer, High Ticket).
-      5. CREATE a viral content strategy for 5 days.
+      CHAIN OF THOUGHT:
+      1. Identify the bleeding neck problem for this audience.
+      2. Construct a "Grand Slam Offer" (High value, high price).
+      3. Write copy that hits emotional triggers (Status, Fear, Vanity).
+      4. Design a content plan that is polarizing and viral.
+
+      OUTPUT INSTRUCTIONS:
+      - Pricing: Tier 1 ($97-$197/mo), Tier 2 ($297-$497/mo), Tier 3 ($997+ High Ticket).
+      - Copy: Punchy, direct, no fluff.
+      - FAQ: Handle objections like "I don't have time" or "I've failed before".
       
-      The output must be strictly JSON format matching the schema.`,
+      Return JSON only matching the schema.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: blueprintSchema,
-        temperature: 0.7,
+        temperature: 0.75,
       },
     });
 
@@ -116,8 +141,8 @@ export const regenerateContentPlan = async (niche: string): Promise<SocialPost[]
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `You are a Social Media Manager. Generate 5 new, viral post ideas for a fitness coach in the "${niche}" niche.
-      Focus on 'Edutainment', controversy, or actionable tips.`,
+      contents: `You are a viral content strategist. Generate 5 polarizing, high-engagement post ideas for the "${niche}" fitness niche.
+      Use hooks that stop the scroll (e.g. "Stop doing cardio", "Why your diet failed").`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -185,8 +210,8 @@ export const generateGrowthPlan = async (
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `You are a Growth Hacker. Analyze: Niche="${niche}", Leads=${stats.leads}, Clients=${stats.clients}, ConvRate=${stats.conversionRate}.
-      Generate 3 aggressive growth experiments and 3 sales scripts.`,
+      contents: `Role: Growth Hacker. Niche: "${niche}". Stats: ${JSON.stringify(stats)}.
+      Generate 3 growth experiments to double leads and 3 sales scripts to close high-ticket deals.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: growthSchema,
@@ -240,6 +265,13 @@ const getMockBlueprint = (): BusinessBlueprint => {
       heroHeadline: "Reclaim Your Prime",
       heroSubhead: "The premier strength system for fathers.",
       ctaText: "Start Now",
+      problem: "You're tired, achy, and losing your edge.",
+      solution: "A proven strength protocol that takes 30 mins.",
+      coachBio: {
+        name: "Coach Mike",
+        headline: "Ex-Military turned Dad Coach",
+        story: "I know what it's like to have zero time."
+      },
       features: ["30-Min Workouts", "Nutrition Plan", "1-on-1 Coaching"],
       pricing: [
         { name: "Basic", price: "$97/mo", features: ["App Access"] },
@@ -247,7 +279,15 @@ const getMockBlueprint = (): BusinessBlueprint => {
       ],
       testimonials: [
         { name: "Mike", result: "-20lbs", quote: "Changed my life." }
-      ]
+      ],
+      faq: [
+        { question: "Do I need a gym?", answer: "No, home workouts included." }
+      ],
+      urgencySettings: {
+        enabled: true,
+        bannerText: "Only 3 spots left this month",
+        spotsLeft: 3
+      }
     },
     contentPlan: [
       { id: "1", day: 1, hook: "Stop running.", body: "Lift weights instead.", cta: "DM me", type: "Video" }

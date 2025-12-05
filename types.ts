@@ -1,4 +1,3 @@
-
 export enum AppView {
   ONBOARDING = 'ONBOARDING',
   DASHBOARD = 'DASHBOARD',
@@ -41,6 +40,11 @@ export interface Template {
   preview_image_url?: string;
   config: ProjectData; // The blueprint snapshot
   created_at: string;
+  
+  // NEW FIELDS FOR ADVANCED MARKETPLACE
+  version: string;
+  verified: boolean;
+  lastUpdated: string;
 }
 
 export interface Client {

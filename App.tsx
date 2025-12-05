@@ -20,6 +20,7 @@ import { storageService } from './services/storageService';
 import { regenerateContentPlan } from './services/geminiService';
 import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 import { authService } from './services/authService';
+import { emailService } from './services/emailService'; // Import Email Service
 import { Loader2 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -250,7 +251,7 @@ const App: React.FC = () => {
     addToast('Business initialized successfully!', 'success');
   };
 
-  const handleAddClient = (clientData: Partial<Client>) => {
+  const handleAddClient = async (clientData: Partial<Client>) => {
     const newClient: Client = {
       id: Math.random().toString(36).substr(2, 9),
       name: clientData.name || 'New Client',
@@ -265,8 +266,14 @@ const App: React.FC = () => {
     };
     
     const updatedClients = [...clients, newClient];
-    setClients(updatedClients); // Update state first for UI
+    setClients(updatedClients); 
     addToast('Client added successfully', 'success');
+
+    // Email Service Integration
+    if (newClient.email) {
+       await emailService.sendWelcomeEmail(newClient.email, blueprint?.businessName || 'Us');
+       addToast(`Email Sent: Welcome to ${blueprint?.businessName}`, 'info');
+    }
 
     // Trigger Automations Logic
     const triggeredAutomations = automations.filter(a => 
@@ -289,7 +296,6 @@ const App: React.FC = () => {
       });
       setAutomations(updatedAutomations);
 
-      // Create Trigger Events
       const triggerEvents: AnalyticsEvent[] = triggeredAutomations.map(a => ({
         id: Math.random().toString(36).substr(2, 9),
         type: 'automation_triggered',
@@ -307,7 +313,6 @@ const App: React.FC = () => {
       });
     }
 
-    // Single Save Operation for Consistency
     handleSaveProject(undefined, updatedClients, updatedAutomations, undefined, undefined, newEvents);
   };
 
@@ -316,6 +321,21 @@ const App: React.FC = () => {
     setClients(updated);
     await handleSaveProject(undefined, updated);
     addToast('Client updated', 'success');
+  };
+
+  // NEW: Check-in Logic
+  const handleCheckIn = async (id: string) => {
+    const client = clients.find(c => c.id === id);
+    if (client) {
+        // Update Status
+        const updated = clients.map(c => c.id === id ? { ...c, lastCheckIn: 'Just now' } : c);
+        setClients(updated);
+        await handleSaveProject(undefined, updated);
+        
+        // Send Email
+        await emailService.sendCheckInEmail(client.email, client.name);
+        addToast(`Check-in email sent to ${client.name}`, 'success');
+    }
   };
 
   const handleDeleteClient = (id: string) => {
@@ -417,7 +437,13 @@ const App: React.FC = () => {
             onUpdateClient={handleUpdateClient} 
         />;
       case AppView.CRM:
-        return <CRM clients={clients} onAddClient={handleAddClient} onUpdateClient={handleUpdateClient} onDeleteClient={handleDeleteClient} />;
+        return <CRM 
+            clients={clients} 
+            onAddClient={handleAddClient} 
+            onUpdateClient={handleUpdateClient} 
+            onDeleteClient={handleDeleteClient}
+            onCheckIn={handleCheckIn}
+        />;
       case AppView.LEADS:
         return <Leads leads={leads} onConvert={handleConvertLead} onUpdateStatus={handleUpdateLeadStatus} />;
       case AppView.WEBSITE:

@@ -1,4 +1,5 @@
 
+
 export enum AppView {
   ONBOARDING = 'ONBOARDING',
   DASHBOARD = 'DASHBOARD',
@@ -16,6 +17,12 @@ export enum ClientStatus {
   LEAD = 'Lead',
   ACTIVE = 'Active',
   CHURNED = 'Churned',
+}
+
+export enum NotificationType {
+    EMAIL = 'EMAIL',
+    SMS = 'SMS',
+    WHATSAPP = 'WHATSAPP'
 }
 
 export interface Client {

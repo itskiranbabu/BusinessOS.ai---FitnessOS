@@ -1,16 +1,17 @@
 
 import React, { useState } from 'react';
 import { Client, ClientStatus } from '../types';
-import { Search, UserPlus, CheckCircle, AlertCircle, X, Trash2, Edit2, Save, MoreHorizontal, Tag } from 'lucide-react';
+import { Search, UserPlus, CheckCircle, AlertCircle, X, Trash2, Edit2, Save, MoreHorizontal, Tag, MessageSquare, Send } from 'lucide-react';
 
 interface CRMProps {
   clients: Client[];
   onAddClient: (client: Partial<Client>) => void;
   onUpdateClient: (id: string, updates: Partial<Client>) => void;
   onDeleteClient: (id: string) => void;
+  onCheckIn?: (id: string) => void; // New Prop
 }
 
-const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDeleteClient }) => {
+const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDeleteClient, onCheckIn }) => {
   const [filter, setFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -25,7 +26,8 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
     status: ClientStatus.LEAD,
     program: '',
     notes: '',
-    tags: '' // Comma separated string for input
+    tags: '',
+    progress: 0 // Added progress
   });
 
   const filteredClients = clients.filter(client => {
@@ -52,7 +54,8 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
       status: client.status,
       program: client.program,
       notes: client.notes || '',
-      tags: client.tags ? client.tags.join(', ') : ''
+      tags: client.tags ? client.tags.join(', ') : '',
+      progress: client.progress || 0
     });
     setIsModalOpen(true);
   };
@@ -71,7 +74,8 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
       status: ClientStatus.LEAD,
       program: '',
       notes: '',
-      tags: ''
+      tags: '',
+      progress: 0
     });
     setIsModalOpen(true);
   };
@@ -198,7 +202,7 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
                     <div className="flex items-center gap-2">
                       {client.lastCheckIn === 'Never' ? (
                         <span className="text-slate-400 dark:text-slate-500">Never</span>
-                      ) : client.lastCheckIn.includes('ago') ? (
+                      ) : client.lastCheckIn.includes('ago') || client.lastCheckIn === 'Just now' ? (
                         <><CheckCircle size={16} className="text-green-500" /> {client.lastCheckIn}</>
                       ) : (
                         <><AlertCircle size={16} className="text-yellow-500" /> {client.lastCheckIn}</>
@@ -206,10 +210,20 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <div className="flex justify-end gap-2">
+                       {/* Check-in Action */}
+                      <button 
+                        onClick={() => onCheckIn && onCheckIn(client.id)}
+                        className="text-slate-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 p-2 rounded-lg transition-colors"
+                        title="Log Check-in & Send Email"
+                      >
+                         <MessageSquare size={16} />
+                      </button>
+
                       <button onClick={() => handleEdit(client)} className="text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-lg transition-colors" title="Edit">
                         <Edit2 size={16} />
                       </button>
+                      
                       <button onClick={() => handleDelete(client.id)} className="text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg transition-colors" title="Delete">
                         <Trash2 size={16} />
                       </button>
@@ -242,7 +256,6 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                  placeholder="e.g. John Doe"
                 />
               </div>
 
@@ -254,7 +267,6 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
                   value={formData.email}
                   onChange={e => setFormData({...formData, email: e.target.value})}
                   className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                  placeholder="e.g. john@example.com"
                 />
               </div>
 
@@ -278,11 +290,26 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
                     value={formData.program}
                     onChange={e => setFormData({...formData, program: e.target.value})}
                     className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                    placeholder="e.g. Weight Loss"
                   />
                 </div>
               </div>
               
+              {/* Progress Slider (Only visible in Edit mode usually, but fine for add too) */}
+              <div>
+                 <div className="flex justify-between items-center mb-1.5">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Client Progress</label>
+                    <span className="text-xs font-bold text-primary-600 dark:text-primary-400">{formData.progress}%</span>
+                 </div>
+                 <input 
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={formData.progress}
+                    onChange={e => setFormData({...formData, progress: parseInt(e.target.value)})}
+                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary-600"
+                 />
+              </div>
+
               <div>
                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Tags (comma separated)</label>
                  <div className="relative">

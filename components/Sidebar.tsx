@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { LayoutDashboard, Users, Globe, FileText, Settings, LogOut, Activity, Zap, CreditCard, Moon, Sun, Target, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Users, Globe, FileText, Settings, LogOut, Activity, Zap, CreditCard, Moon, Sun, Target, TrendingUp, ShoppingBag } from 'lucide-react';
 import { AppView } from '../types';
 
 interface SidebarProps {
@@ -20,6 +21,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, onLogout, 
     { id: AppView.AUTOMATIONS, label: 'Automations', icon: Zap },
     { id: AppView.PAYMENTS, label: 'Monetization', icon: CreditCard },
     { id: AppView.GROWTH, label: 'Growth Lab', icon: TrendingUp },
+    { id: AppView.MARKETPLACE, label: 'Marketplace', icon: ShoppingBag }, // NEW
     { id: AppView.SETTINGS, label: 'System', icon: Settings },
   ];
 

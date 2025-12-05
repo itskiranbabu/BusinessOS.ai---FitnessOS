@@ -9,6 +9,7 @@ export enum AppView {
   AUTOMATIONS = 'AUTOMATIONS',
   PAYMENTS = 'PAYMENTS',
   GROWTH = 'GROWTH',
+  MARKETPLACE = 'MARKETPLACE',
   SETTINGS = 'SETTINGS',
 }
 
@@ -24,11 +25,29 @@ export enum NotificationType {
     WHATSAPP = 'WHATSAPP'
 }
 
+export type TemplateCategory = 'full_system' | 'funnel' | 'automation' | 'content_pack';
+
+export interface Template {
+  id: string;
+  author_id: string;
+  title: string;
+  description: string;
+  category: TemplateCategory;
+  niche: string;
+  price: number; // in cents
+  is_public: boolean;
+  install_count: number;
+  rating: number;
+  preview_image_url?: string;
+  config: ProjectData; // The blueprint snapshot
+  created_at: string;
+}
+
 export interface Client {
   id: string;
   name: string;
   email: string;
-  phone?: string; // Added for WhatsApp/SMS
+  phone?: string;
   status: ClientStatus;
   program: string;
   joinDate: string;
@@ -43,7 +62,7 @@ export interface Lead {
   projectId?: string;
   name: string;
   email: string;
-  phone?: string; // Added for WhatsApp/SMS
+  phone?: string;
   message?: string;
   status: 'New' | 'Contacted' | 'Converted' | 'Archived';
   createdAt: string;

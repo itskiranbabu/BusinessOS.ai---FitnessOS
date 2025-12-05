@@ -11,6 +11,7 @@ import Payments from './components/Payments';
 import Settings from './components/Settings';
 import Leads from './components/Leads';
 import Growth from './components/Growth';
+import Marketplace from './components/Marketplace';
 import PublicSite from './components/PublicSite';
 import Auth from './components/Auth';
 import ToastContainer, { ToastMessage, ToastType } from './components/Toast';
@@ -64,8 +65,8 @@ const App: React.FC = () => {
         const interval = setInterval(async () => {
             const saved = await storageService.loadProject();
             if (saved) {
-                if (saved.data.leads.length !== leads.length) setLeads(saved.data.leads);
-                if (saved.data.events.length !== events.length) setEvents(saved.data.events);
+                if (saved.data.leads && saved.data.leads.length !== leads.length) setLeads(saved.data.leads);
+                if (saved.data.events && saved.data.events.length !== events.length) setEvents(saved.data.events);
             }
         }, 10000); 
         return () => clearInterval(interval);
@@ -102,7 +103,7 @@ const App: React.FC = () => {
             const saved = await storageService.loadProject();
             if (saved) {
                 setBlueprint(saved.data.blueprint);
-                setClients(saved.data.clients);
+                setClients(saved.data.clients || []);
                 setAutomations(saved.data.automations || []);
                 setLeads(saved.data.leads || []);
                 setEvents(saved.data.events || []);
@@ -152,13 +153,13 @@ const App: React.FC = () => {
   const handleLogout = async () => { await authService.signOut(); setIsAuthenticated(false); setUserEmail(null); setBlueprint(null); setHasOnboarded(false); addToast('Signed out successfully', 'info'); };
   const handleOnboardingComplete = async (data: BusinessBlueprint) => { setBlueprint(data); const initialClients: Client[] = [{ id: '1', name: 'Example Lead', email: 'lead@example.com', status: ClientStatus.LEAD, program: 'Interest', joinDate: new Date().toISOString().split('T')[0], lastCheckIn: 'N/A', progress: 0 }]; setClients(initialClients); const initialAutomations: Automation[] = [{ id: '1', name: 'Weekly Client Check-in', type: 'WhatsApp', trigger: 'Every Monday 8AM', status: 'Active', stats: { sent: 0, opened: '0%' } }, { id: '2', name: 'New Lead Welcome', type: 'Email', trigger: 'On Sign Up', status: 'Active', stats: { sent: 0, opened: '0%' } }]; setAutomations(initialAutomations); fetchRevenueData().then(setRevenueData); setHasOnboarded(true); await handleSaveProject(data, initialClients, initialAutomations, [], undefined, []); addToast('Business initialized successfully!', 'success'); };
 
-  // --- UPDATED LOGIC ---
+  // --- UPDATED ADD CLIENT LOGIC ---
   const handleAddClient = async (clientData: Partial<Client>) => {
     const newClient: Client = {
       id: Math.random().toString(36).substr(2, 9),
       name: clientData.name || 'New Client',
       email: clientData.email || '',
-      phone: clientData.phone || '', // FIXED: Map Phone
+      phone: clientData.phone || '', 
       status: clientData.status || ClientStatus.LEAD,
       program: clientData.program || 'General',
       joinDate: new Date().toISOString().split('T')[0],
@@ -172,13 +173,14 @@ const App: React.FC = () => {
     setClients(updatedClients); 
     addToast('Client added successfully', 'success');
 
+    // CRITICAL CRASH FIX: Use optional chaining (?.) for coachBio and publishedUrl
     if (newClient.email && blueprint) {
        await emailService.sendWelcomeEmail(
            newClient.email,
            newClient.name,
            blueprint.businessName,
-           blueprint.websiteData.coachBio.name || 'Coach',
-           blueprint.websiteData.publishedUrl || 'https://businessos.ai'
+           blueprint.websiteData?.coachBio?.name || 'Coach', // FIXED: Safe Access
+           blueprint.websiteData?.publishedUrl || 'https://businessos.ai' // FIXED: Safe Access
        );
        addToast(`Email Sent: Welcome to ${blueprint.businessName}`, 'info');
     }
@@ -212,7 +214,11 @@ const App: React.FC = () => {
       
       triggeredAutomations.forEach(a => {
         setTimeout(() => {
-          addToast(`⚡ Automation triggered: ${a.name}`, 'success');
+          if (a.type === 'Email') {
+             addToast(`⚡ Triggered Email: ${a.name}`, 'success');
+          } else {
+             addToast(`⚡ Automation: ${a.name} (Ready to Send)`, 'info');
+          }
         }, 1000);
       });
     }
@@ -233,12 +239,13 @@ const App: React.FC = () => {
         const updated = clients.map(c => c.id === id ? { ...c, lastCheckIn: 'Just now' } : c);
         setClients(updated);
         await handleSaveProject(undefined, updated);
+        // CRITICAL FIX: Safe access for check-in email too
         await emailService.sendCheckInEmail(client.email, client.name, blueprint.businessName);
         addToast(`Check-in logged for ${client.name}`, 'success');
     }
   };
 
-  // ... (Other handlers unchanged)
+  // ... (Other handlers)
   const handleDeleteClient = (id: string) => { const updated = clients.filter(c => c.id !== id); handleUpdateClients(updated); addToast('Client removed', 'info'); };
   
   const handleCaptureLead = (email: string) => {
@@ -247,6 +254,7 @@ const App: React.FC = () => {
   };
 
   const handleConvertLead = (lead: Lead) => {
+    // Ensure phone is passed during conversion
     handleAddClient({ name: lead.name, email: lead.email, phone: lead.phone, status: ClientStatus.LEAD, program: 'Converted', tags: ['From Lead'] });
     const updatedLeads = leads.map(l => l.id === lead.id ? { ...l, status: 'Converted' as const } : l);
     handleUpdateLeads(updatedLeads);
@@ -256,6 +264,24 @@ const App: React.FC = () => {
   const handleUpdateLeadStatus = (id: string, status: Lead['status']) => { const updatedLeads = leads.map(l => l.id === id ? { ...l, status } : l); handleUpdateLeads(updatedLeads); };
   const handleUpdateContentPlan = (newPlan: SocialPost[]) => { if (blueprint) { handleUpdateBlueprint({ contentPlan: newPlan }); } };
   const handleRegenerateContent = async (): Promise<SocialPost[]> => { if (blueprint) { addToast('Generating new content strategy...', 'info'); const plan = await regenerateContentPlan(blueprint.niche); addToast('Content plan refreshed', 'success'); return plan; } return []; };
+
+  const handleInstallTemplate = (newConfig: ProjectData) => {
+      // OVERWRITE LOGIC
+      setBlueprint(newConfig.blueprint);
+      setAutomations(newConfig.automations);
+      // Keep existing clients/leads/events if needed, or overwrite? For MVP we keep existing data but update blueprint/automations
+      // Actually, standard behavior for "Install System" is usually overwrite or merge.
+      // Let's overwrite blueprint and automations, keep clients.
+      const merged: ProjectData = {
+          ...newConfig,
+          clients: clients,
+          leads: leads,
+          events: events
+      };
+      handleSaveProject(merged.blueprint, merged.clients, merged.automations);
+      addToast('System installed successfully!', 'success');
+      setCurrentView(AppView.DASHBOARD);
+  }
 
   if (isPublicRoute) {
       if (isLoading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-primary-600" /></div>;
@@ -278,6 +304,7 @@ const App: React.FC = () => {
       case AppView.AUTOMATIONS: return <Automations automations={automations} events={events} onUpdate={handleUpdateAutomations} />;
       case AppView.PAYMENTS: return <Payments blueprint={blueprint} clients={clients} />;
       case AppView.GROWTH: return <Growth events={events} leads={leads} clients={clients} blueprint={blueprint} growthPlan={growthPlan} onUpdatePlan={handleUpdateGrowthPlan} />;
+      case AppView.MARKETPLACE: return <Marketplace currentProject={{blueprint, clients, automations, leads, events, growthPlan}} onInstall={handleInstallTemplate} />;
       case AppView.SETTINGS: return <Settings blueprint={blueprint} userEmail={userEmail} onUpdateProfile={handleUpdateBlueprint} clients={clients} />;
       default: return <div className="p-8 text-slate-500">Feature coming soon...</div>;
     }

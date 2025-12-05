@@ -1,4 +1,3 @@
-
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { ProjectData, Template, TemplateCategory } from '../types';
 import { authService } from './authService';
@@ -28,6 +27,29 @@ export const marketplaceService = {
     return data as Template[];
   },
 
+  // NEW: Fetch templates created by the current user
+  getAuthoredTemplates: async (): Promise<Template[]> => {
+      const user = await authService.getCurrentUser();
+      // For mock mode, we filter the mock list by a fake author ID
+      if (!isSupabaseConfigured() || !supabase) {
+          // Assuming the logged in user is 'mock-user-123'
+          return getMockTemplates().filter(t => t.author_id === 'mock-user-123');
+      }
+
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('templates')
+        .select('*')
+        .eq('author_id', user.id);
+      
+      if (error) {
+          console.error("Error fetching authored templates", error);
+          return [];
+      }
+      return data as Template[];
+  },
+
   // Publish the current project as a template
   publishTemplate: async (
     projectData: ProjectData, 
@@ -35,19 +57,19 @@ export const marketplaceService = {
   ): Promise<boolean> => {
     if (!isSupabaseConfigured() || !supabase) {
         console.warn("Supabase not connected. Cannot publish template.");
-        return false;
+        return true; // Simulate success for demo
     }
 
     const user = await authService.getCurrentUser();
     if (!user) return false;
 
-    // Sanitize data: Remove specific clients, leads, and events before publishing
+    // Sanitize data
     const sanitizedConfig: ProjectData = {
         blueprint: projectData.blueprint,
         automations: projectData.automations,
-        clients: [], // Do not share client PII
-        leads: [],   // Do not share lead PII
-        events: [],  // Do not share analytics
+        clients: [], 
+        leads: [],   
+        events: [],  
         growthPlan: projectData.growthPlan
     };
 
@@ -59,7 +81,11 @@ export const marketplaceService = {
         price: meta.price,
         config: sanitizedConfig,
         is_public: true,
-        category: 'full_system'
+        category: 'full_system',
+        version: '1.0',
+        verified: false,
+        install_count: 0,
+        rating: 0
     });
 
     if (error) {
@@ -69,7 +95,7 @@ export const marketplaceService = {
     return true;
   },
 
-  // "Install" a template (overwrite current project for MVP)
+  // "Install" a template
   installTemplate: async (templateId: string): Promise<ProjectData | null> => {
     if (!isSupabaseConfigured() || !supabase) {
         const mock = getMockTemplates().find(t => t.id === templateId);
@@ -87,18 +113,17 @@ export const marketplaceService = {
         return null;
     }
 
-    // Increment install count
     await supabase.rpc('increment_install_count', { template_id: templateId });
 
     return data.config as ProjectData;
   }
 };
 
-// --- RICH MOCK DATA FOR UI PREVIEW ---
+// --- RICH MOCK DATA ---
 const getMockTemplates = (): Template[] => [
   {
     id: '1',
-    author_id: 'mock-auth',
+    author_id: 'alex-hormozi-clone',
     title: 'High-Ticket Coach OS',
     description: 'The exact system used to scale to $50k/mo. Includes webinar funnel, 7-day email sequence, and high-converting copy.',
     category: 'full_system',
@@ -106,7 +131,10 @@ const getMockTemplates = (): Template[] => [
     price: 0,
     is_public: true,
     install_count: 1240,
-    rating: 4.8,
+    rating: 4.9,
+    version: '2.1',
+    verified: true,
+    lastUpdated: '2 days ago',
     created_at: new Date().toISOString(),
     config: {
         blueprint: {
@@ -150,6 +178,9 @@ const getMockTemplates = (): Template[] => [
     is_public: true,
     install_count: 850,
     rating: 4.5,
+    version: '1.0',
+    verified: false,
+    lastUpdated: '1 month ago',
     created_at: new Date().toISOString(),
     config: {
         blueprint: {
@@ -180,5 +211,23 @@ const getMockTemplates = (): Template[] => [
             { id: 'b1', name: 'Pass Claimed SMS', type: 'SMS', trigger: 'Form Submit', status: 'Active', stats: { sent: 850, opened: '99%' } }
         ]
     }
+  },
+  // YOUR UPLOADED TEMPLATE (For Creator Dashboard Demo)
+  {
+    id: '3',
+    author_id: 'mock-user-123', // Matches authService mock user
+    title: 'My Custom System',
+    description: 'A great template I built.',
+    category: 'full_system',
+    niche: 'Wellness',
+    price: 9900,
+    is_public: true,
+    install_count: 12,
+    rating: 5.0,
+    version: '1.0',
+    verified: false,
+    lastUpdated: 'Just now',
+    created_at: new Date().toISOString(),
+    config: { blueprint: {} as any, clients: [], leads: [], events: [], automations: [] } 
   }
 ];

@@ -1,33 +1,33 @@
 
 import React, { useState } from 'react';
 import { Client, ClientStatus } from '../types';
-import { Search, UserPlus, CheckCircle, AlertCircle, X, Trash2, Edit2, Save, MoreHorizontal, Tag, MessageSquare, Send } from 'lucide-react';
+import { emailService } from '../services/emailService';
+import { Search, UserPlus, CheckCircle, AlertCircle, X, Trash2, Edit2, Save, Tag, MessageSquare, Phone, MessageCircle } from 'lucide-react';
 
 interface CRMProps {
   clients: Client[];
   onAddClient: (client: Partial<Client>) => void;
   onUpdateClient: (id: string, updates: Partial<Client>) => void;
   onDeleteClient: (id: string) => void;
-  onCheckIn?: (id: string) => void; // New Prop
+  onCheckIn?: (id: string) => void;
 }
 
 const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDeleteClient, onCheckIn }) => {
   const [filter, setFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
-  // Form State
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '', // Added Phone
     status: ClientStatus.LEAD,
     program: '',
     notes: '',
     tags: '',
-    progress: 0 // Added progress
+    progress: 0
   });
 
   const filteredClients = clients.filter(client => {
@@ -51,6 +51,7 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
     setFormData({
       name: client.name,
       email: client.email,
+      phone: client.phone || '', // Load phone
       status: client.status,
       program: client.program,
       notes: client.notes || '',
@@ -71,6 +72,7 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
     setFormData({
       name: '',
       email: '',
+      phone: '',
       status: ClientStatus.LEAD,
       program: '',
       notes: '',
@@ -85,18 +87,21 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
     const processedTags = formData.tags.split(',').map(t => t.trim()).filter(t => t);
     
     if (editingId) {
-      onUpdateClient(editingId, {
-          ...formData,
-          tags: processedTags
-      });
+      onUpdateClient(editingId, { ...formData, tags: processedTags });
     } else {
-      onAddClient({
-        ...formData,
-        program: formData.program || 'General Interest',
-        tags: processedTags
-      });
+      onAddClient({ ...formData, program: formData.program || 'General Interest', tags: processedTags });
     }
     setIsModalOpen(false);
+  };
+
+  const handleWhatsApp = (phone?: string) => {
+    if(!phone) return alert("No phone number saved for this client.");
+    emailService.sendWhatsApp(phone, "Hey! Checking in on your progress.");
+  };
+
+  const handleSMS = (phone?: string) => {
+    if(!phone) return alert("No phone number saved for this client.");
+    emailService.sendSMS(phone, "Hey! Checking in on your progress.");
   };
 
   return (
@@ -108,14 +113,13 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
         </div>
         <button 
           onClick={handleOpenAdd}
-          className="bg-primary-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-700 flex items-center gap-2 shadow-lg shadow-primary-600/30 transition-all hover:translate-y-[-1px]"
+          className="bg-primary-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-700 flex items-center gap-2 shadow-lg shadow-primary-600/30 transition-all"
         >
           <UserPlus size={18} /> Add Client
         </button>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors duration-300">
-        {/* Toolbar */}
         <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
           <div className="relative w-full sm:w-96">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -124,7 +128,7 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
               placeholder="Search clients..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+              className="w-full pl-11 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
           <div className="flex gap-3 w-full sm:w-auto">
@@ -141,12 +145,11 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
           </div>
         </div>
 
-        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Name / Email</th>
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Name / Contact</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Program</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Progress</th>
@@ -155,13 +158,7 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {filteredClients.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
-                    No clients found. Add your first client to get started.
-                  </td>
-                </tr>
-              ) : filteredClients.map((client) => (
+              {filteredClients.map((client) => (
                 <tr key={client.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
@@ -171,13 +168,7 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
                       <div>
                         <div className="font-medium text-slate-900 dark:text-white">{client.name}</div>
                         <div className="text-xs text-slate-500 dark:text-slate-400">{client.email}</div>
-                        {client.tags && client.tags.length > 0 && (
-                            <div className="flex gap-1 mt-1">
-                                {client.tags.slice(0, 2).map((tag, i) => (
-                                    <span key={i} className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">{tag}</span>
-                                ))}
-                            </div>
-                        )}
+                        {client.phone && <div className="text-xs text-slate-400">{client.phone}</div>}
                       </div>
                     </div>
                   </td>
@@ -200,9 +191,7 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">
                     <div className="flex items-center gap-2">
-                      {client.lastCheckIn === 'Never' ? (
-                        <span className="text-slate-400 dark:text-slate-500">Never</span>
-                      ) : client.lastCheckIn.includes('ago') || client.lastCheckIn === 'Just now' ? (
+                      {client.lastCheckIn.includes('ago') || client.lastCheckIn === 'Just now' ? (
                         <><CheckCircle size={16} className="text-green-500" /> {client.lastCheckIn}</>
                       ) : (
                         <><AlertCircle size={16} className="text-yellow-500" /> {client.lastCheckIn}</>
@@ -210,21 +199,21 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                       {/* Check-in Action */}
-                      <button 
-                        onClick={() => onCheckIn && onCheckIn(client.id)}
-                        className="text-slate-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 p-2 rounded-lg transition-colors"
-                        title="Log Check-in & Send Email"
-                      >
+                    <div className="flex justify-end gap-1">
+                      {/* NEW: Communication Buttons */}
+                      <button onClick={() => handleWhatsApp(client.phone)} className="text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 p-2 rounded-lg" title="WhatsApp">
+                         <MessageCircle size={16} />
+                      </button>
+                      <button onClick={() => handleSMS(client.phone)} className="text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-lg" title="SMS">
+                         <Phone size={16} />
+                      </button>
+                      <button onClick={() => onCheckIn && onCheckIn(client.id)} className="text-slate-400 hover:text-green-600 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-lg" title="Log Check-in">
                          <MessageSquare size={16} />
                       </button>
-
-                      <button onClick={() => handleEdit(client)} className="text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-lg transition-colors" title="Edit">
+                      <button onClick={() => handleEdit(client)} className="text-slate-400 hover:text-primary-600 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-lg">
                         <Edit2 size={16} />
                       </button>
-                      
-                      <button onClick={() => handleDelete(client.id)} className="text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg transition-colors" title="Delete">
+                      <button onClick={() => handleDelete(client.id)} className="text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -236,7 +225,7 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
         </div>
       </div>
 
-      {/* Add/Edit Client Modal */}
+      {/* Modal - Includes Phone */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-up border border-slate-200 dark:border-slate-700">
@@ -250,34 +239,23 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Full Name</label>
-                <input 
-                  type="text" 
-                  required
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                />
+                <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-white" />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email Address</label>
-                <input 
-                  type="email" 
-                  required
-                  value={formData.email}
-                  onChange={e => setFormData({...formData, email: e.target.value})}
-                  className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email</label>
+                    <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-white" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Phone</label>
+                    <input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="+1..." className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-white" />
+                  </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-5">
+              
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Status</label>
-                  <select 
-                    value={formData.status}
-                    onChange={e => setFormData({...formData, status: e.target.value as ClientStatus})}
-                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                  >
+                  <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as ClientStatus})} className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-white">
                     <option value={ClientStatus.LEAD}>Lead</option>
                     <option value={ClientStatus.ACTIVE}>Active</option>
                     <option value={ClientStatus.CHURNED}>Churned</option>
@@ -285,70 +263,26 @@ const CRM: React.FC<CRMProps> = ({ clients, onAddClient, onUpdateClient, onDelet
                 </div>
                 <div>
                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Program</label>
-                   <input 
-                    type="text" 
-                    value={formData.program}
-                    onChange={e => setFormData({...formData, program: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                  />
+                   <input type="text" value={formData.program} onChange={e => setFormData({...formData, program: e.target.value})} className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-white" />
                 </div>
               </div>
-              
-              {/* Progress Slider (Only visible in Edit mode usually, but fine for add too) */}
+
               <div>
                  <div className="flex justify-between items-center mb-1.5">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Client Progress</label>
                     <span className="text-xs font-bold text-primary-600 dark:text-primary-400">{formData.progress}%</span>
                  </div>
-                 <input 
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={formData.progress}
-                    onChange={e => setFormData({...formData, progress: parseInt(e.target.value)})}
-                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary-600"
-                 />
-              </div>
-
-              <div>
-                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Tags (comma separated)</label>
-                 <div className="relative">
-                    <Tag className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <input 
-                        type="text" 
-                        value={formData.tags}
-                        onChange={e => setFormData({...formData, tags: e.target.value})}
-                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                        placeholder="e.g. VIP, Injury, Morning"
-                    />
-                 </div>
+                 <input type="range" min="0" max="100" value={formData.progress} onChange={e => setFormData({...formData, progress: parseInt(e.target.value)})} className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary-600" />
               </div>
 
               <div>
                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Internal Notes</label>
-                 <textarea 
-                    rows={2}
-                    value={formData.notes}
-                    onChange={e => setFormData({...formData, notes: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 bg-white dark:bg-slate-950 text-slate-900 dark:text-white resize-none"
-                    placeholder="e.g. Struggling with knee pain..."
-                />
+                 <textarea rows={2} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-white resize-none" />
               </div>
 
               <div className="pt-2 flex gap-3">
-                <button 
-                  type="button" 
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="flex-1 px-4 py-2.5 bg-primary-600 rounded-xl text-white font-medium hover:bg-primary-700 flex items-center justify-center gap-2 shadow-lg shadow-primary-600/30 transition-colors"
-                >
-                  {editingId ? <><Save size={18}/> Save Changes</> : <><UserPlus size={18}/> Create Client</>}
-                </button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-800">Cancel</button>
+                <button type="submit" className="flex-1 px-4 py-2.5 bg-primary-600 rounded-xl text-white font-medium hover:bg-primary-700 shadow-lg shadow-primary-600/30">{editingId ? 'Save Changes' : 'Create Client'}</button>
               </div>
             </form>
           </div>

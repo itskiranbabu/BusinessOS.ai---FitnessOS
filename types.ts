@@ -1,3 +1,4 @@
+
 export enum AppView {
   ONBOARDING = 'ONBOARDING',
   DASHBOARD = 'DASHBOARD',
@@ -27,6 +28,7 @@ export interface Client {
   id: string;
   name: string;
   email: string;
+  phone?: string; // Added for WhatsApp/SMS
   status: ClientStatus;
   program: string;
   joinDate: string;
@@ -41,10 +43,11 @@ export interface Lead {
   projectId?: string;
   name: string;
   email: string;
+  phone?: string; // Added for WhatsApp/SMS
   message?: string;
   status: 'New' | 'Contacted' | 'Converted' | 'Archived';
   createdAt: string;
-  source: string; // e.g., 'Website', 'Referral'
+  source: string;
 }
 
 export interface AnalyticsEvent {
@@ -74,8 +77,8 @@ export interface WebsiteData {
   heroHeadline: string;
   heroSubhead: string;
   ctaText: string;
-  problem: string; // "The Agitation"
-  solution: string; // "The Fix"
+  problem: string; 
+  solution: string; 
   coachBio: {
     name: string;
     headline: string;
@@ -149,7 +152,6 @@ export interface Automation {
   };
 }
 
-// Unified Project Data for Storage
 export interface ProjectData {
   blueprint: BusinessBlueprint;
   clients: Client[];

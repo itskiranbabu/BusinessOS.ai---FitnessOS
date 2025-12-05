@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { generateBusinessBlueprint } from '../services/geminiService';
 import { BusinessBlueprint } from '../types';
-import { Dumbbell, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Dumbbell, Sparkles, ArrowRight, CheckCircle2, Cpu, BrainCircuit, Rocket } from 'lucide-react';
 
 interface OnboardingProps {
   onComplete: (blueprint: BusinessBlueprint) => void;
@@ -13,11 +13,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [loadingStep, setLoadingStep] = useState(0);
 
   const steps = [
-    "Analyzing fitness niche...",
-    "Designing high-ticket programs...",
-    "Writing website copy...",
-    "Generating 30-day content plan...",
-    "Finalizing business blueprint..."
+    { text: "Analyzing market trends & competitor data...", icon: BrainCircuit },
+    { text: "Architecting high-ticket program structure...", icon: Dumbbell },
+    { text: "Drafting persuasive sales copy...", icon: Sparkles },
+    { text: "Designing viral content strategy...", icon: Rocket },
+    { text: "Finalizing your Business Blueprint...", icon: Cpu }
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,48 +26,69 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
     setIsGenerating(true);
     
-    // Simulate loading steps for UX
+    // Simulate thinking time for each step to build anticipation
+    const stepDuration = 1800; // 1.8s per step
     const interval = setInterval(() => {
       setLoadingStep(prev => (prev < steps.length - 1 ? prev + 1 : prev));
-    }, 1500);
+    }, stepDuration);
 
     try {
       const blueprint = await generateBusinessBlueprint(description);
       
       clearInterval(interval);
-      if (blueprint) {
-        onComplete(blueprint);
-      }
+      // Wait for the final step animation
+      setTimeout(() => {
+        if (blueprint) {
+            onComplete(blueprint);
+        }
+      }, 1000);
+      
     } catch (error) {
       console.error("Failed to generate", error);
       setIsGenerating(false);
+      clearInterval(interval);
     }
   };
 
   if (isGenerating) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700 text-center">
-          <div className="w-20 h-20 bg-primary-600/20 rounded-full flex items-center justify-center mx-auto mb-8 relative">
-             <div className="absolute inset-0 bg-primary-500 rounded-full animate-ping opacity-20"></div>
-            <Sparkles className="text-primary-500 animate-pulse" size={40} />
+      <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Ambient Background */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-900/20 rounded-full blur-[120px] animate-blob"></div>
+             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-900/20 rounded-full blur-[120px] animate-blob animation-delay-2000"></div>
+        </div>
+
+        <div className="max-w-md w-full relative z-10 text-center">
+          <div className="w-24 h-24 bg-gradient-to-br from-primary-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-10 shadow-2xl shadow-primary-500/40 relative">
+             <div className="absolute inset-0 bg-primary-400 rounded-full animate-ping opacity-20"></div>
+             <Sparkles className="text-white animate-pulse-slow" size={48} />
           </div>
-          <h2 className="text-3xl font-bold text-white mb-3">Building Your Business</h2>
-          <p className="text-slate-400 mb-10">AI is architecting your fitness empire...</p>
           
-          <div className="space-y-4 text-left">
-            {steps.map((step, index) => (
-              <div key={index} className={`flex items-center gap-4 transition-all duration-500 ${index <= loadingStep ? 'opacity-100 translate-x-0' : 'opacity-30 -translate-x-4'}`}>
-                {index < loadingStep ? (
-                  <CheckCircle2 className="text-green-500" size={24} />
-                ) : index === loadingStep ? (
-                  <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <div className="w-6 h-6 rounded-full border border-slate-600"></div>
-                )}
-                <span className={`text-base font-medium ${index <= loadingStep ? 'text-white' : 'text-slate-500'}`}>{step}</span>
-              </div>
-            ))}
+          <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Building Your Empire</h2>
+          <p className="text-slate-400 mb-12">AI is architecting your fitness business...</p>
+          
+          <div className="space-y-6 text-left bg-slate-900/50 p-8 rounded-3xl border border-white/5 backdrop-blur-md">
+            {steps.map((step, index) => {
+              const Icon = step.icon;
+              const isActive = index === loadingStep;
+              const isCompleted = index < loadingStep;
+              
+              return (
+                <div key={index} className={`flex items-center gap-4 transition-all duration-500 ${index <= loadingStep ? 'opacity-100 translate-x-0' : 'opacity-20 translate-x-2'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-500 ${
+                    isCompleted ? 'bg-green-500/20 border-green-500/50 text-green-400' :
+                    isActive ? 'bg-primary-500/20 border-primary-500 text-primary-400' :
+                    'border-slate-700 text-slate-700'
+                  }`}>
+                    {isCompleted ? <CheckCircle2 size={16} /> : isActive ? <Icon size={16} className="animate-pulse" /> : <Icon size={16} />}
+                  </div>
+                  <span className={`text-sm font-medium ${isActive ? 'text-white' : isCompleted ? 'text-slate-300' : 'text-slate-600'}`}>
+                    {step.text}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -75,44 +96,54 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4 transition-colors">
-      <div className="max-w-xl w-full">
-        <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-primary-600/30 transform rotate-3">
-            <Dumbbell className="text-white" size={40} />
+    <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-4 text-white relative">
+       {/* Background */}
+       <div className="absolute inset-0 bg-mesh opacity-40 z-0"></div>
+
+      <div className="max-w-2xl w-full relative z-10">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center p-3 bg-white/5 rounded-2xl border border-white/10 mb-8 backdrop-blur-sm shadow-xl">
+             <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Dumbbell className="text-white" size={24} />
+             </div>
+             <span className="ml-4 text-2xl font-bold tracking-tight">FitnessOS</span>
           </div>
-          <h1 className="text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4">FitnessOS</h1>
-          <p className="text-xl text-slate-600 dark:text-slate-400">The operating system for modern fitness coaches.</p>
+          <h1 className="text-5xl md:text-6xl font-extrabold text-white tracking-tight mb-6 leading-tight">
+            Launch your <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-indigo-300">Dream Business</span> in seconds.
+          </h1>
+          <p className="text-xl text-slate-400 max-w-lg mx-auto leading-relaxed">
+            The AI operating system used by elite fitness coaches to build, launch, and scale.
+          </p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800">
-          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 uppercase tracking-wide">
-            Describe your ideal coaching business
-          </label>
-          <form onSubmit={handleSubmit}>
-            <textarea
-              className="w-full h-40 p-5 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-slate-900 dark:text-white bg-white dark:bg-slate-950 mb-6 text-lg placeholder:text-slate-400 dark:placeholder:text-slate-600 shadow-inner"
-              placeholder="e.g. I help busy corporate dads lose 20lbs in 90 days using kettlebells and intermittent fasting..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-            
-            <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800/50 p-5 rounded-xl mb-8 text-sm text-primary-800 dark:text-primary-200">
-              <span className="font-bold flex items-center gap-2 mb-1"><Sparkles size={16} /> AI Magic:</span> 
-              We'll generate your website, pricing, and content plan instantly.
+        <div className="bg-slate-900/60 p-1 rounded-3xl border border-white/10 shadow-2xl backdrop-blur-xl">
+            <div className="bg-[#0B1121] rounded-[20px] p-8 md:p-10">
+                <label className="block text-sm font-bold text-slate-300 mb-4 uppercase tracking-wider flex items-center gap-2">
+                    <Sparkles size={14} className="text-primary-400" /> What's your vision?
+                </label>
+                <form onSubmit={handleSubmit}>
+                    <textarea
+                    className="w-full h-40 p-5 border border-slate-700 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-white bg-slate-950/50 text-lg placeholder:text-slate-600 shadow-inner transition-all mb-6"
+                    placeholder="e.g. I help busy corporate dads lose 20lbs in 90 days using kettlebells and intermittent fasting..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    />
+                    
+                    <button
+                    type="submit"
+                    disabled={!description.trim()}
+                    className="w-full bg-gradient-to-r from-primary-600 to-indigo-600 text-white py-5 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-primary-600/25 hover:scale-[1.01] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    >
+                        Generate Business Blueprint <ArrowRight size={20} />
+                    </button>
+                </form>
             </div>
-
-            <button
-              type="submit"
-              disabled={!description.trim()}
-              className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-xl font-bold text-lg hover:bg-slate-800 dark:hover:bg-slate-200 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-slate-900/20"
-            >
-              Build My Business <ArrowRight size={20} />
-            </button>
-          </form>
         </div>
         
-        <p className="text-center text-slate-400 dark:text-slate-600 text-sm mt-8">Powered by Gemini 2.5 Flash • Secure Supabase Auth</p>
+        <div className="flex justify-center gap-6 mt-10 text-slate-500 text-sm font-medium">
+            <span className="flex items-center gap-2"><CheckCircle2 size={14} className="text-green-500" /> No Credit Card Required</span>
+            <span className="flex items-center gap-2"><CheckCircle2 size={14} className="text-green-500" /> Powered by Gemini AI</span>
+        </div>
       </div>
     </div>
   );

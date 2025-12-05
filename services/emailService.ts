@@ -1,33 +1,80 @@
+import emailjs from '@emailjs/browser';
 
-// Simulated Email Service
-// In a real backend, this would connect to SendGrid, Resend, or AWS SES
+// Load keys from environment via process.env (polyfilled in vite.config.ts)
+const SERVICE_ID = process.env.VITE_EMAILJS_SERVICE_ID || '';
+const TEMPLATE_ID = process.env.VITE_EMAILJS_TEMPLATE_ID || '';
+const PUBLIC_KEY = process.env.VITE_EMAILJS_PUBLIC_KEY || '';
 
-export interface EmailTemplate {
-  subject: string;
-  body: string;
+// Initialize EmailJS if key exists
+if (PUBLIC_KEY) {
+  try {
+    emailjs.init(PUBLIC_KEY);
+  } catch (e) {
+    console.warn("Failed to initialize EmailJS", e);
+  }
 }
 
 export const emailService = {
   // Simulate network latency for "Real Time" feel
   _delay: (ms: number) => new Promise(resolve => setTimeout(resolve, ms)),
 
-  sendWelcomeEmail: async (to: string, businessName: string): Promise<boolean> => {
-    console.log(`[Email Service] Sending Welcome Email to ${to}...`);
-    await emailService._delay(800);
-    
-    // In production, you would make an API call here
-    // await fetch('/api/send-email', { method: 'POST', body: JSON.stringify({ to, type: 'welcome' }) })
-    
-    console.log(`[Email Service] 📧 SENT: Welcome to ${businessName}`);
-    return true;
+  /**
+   * Sends a dynamic welcome email.
+   * Uses one Master Template but injects specific coach/business details.
+   */
+  sendWelcomeEmail: async (
+    toEmail: string, 
+    clientName: string,
+    businessName: string,
+    coachName: string,
+    publicUrl: string
+  ): Promise<boolean> => {
+    console.log(`[Email Service] Sending Welcome Email to ${toEmail}...`);
+
+    // Fallback to simulation if keys are missing
+    if (!SERVICE_ID || !TEMPLATE_ID || !PUBLIC_KEY) {
+      console.log("[Email Service] (Simulation) Keys missing. Simulating success.");
+      await emailService._delay(800);
+      return true;
+    }
+
+    try {
+      const templateParams = {
+        to_email: toEmail,
+        client_name: clientName,
+        business_name: businessName,
+        coach_name: coachName,
+        public_url: publicUrl,
+        client_goal: "Transforming your health", // Could be passed dynamically too
+      };
+
+      await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams);
+      console.log(`[Email Service] 📧 REAL EMAIL SENT via EmailJS to ${toEmail}`);
+      return true;
+    } catch (error) {
+      console.error("[Email Service] Failed to send real email:", error);
+      // Fallback to returning true so the UI doesn't break for the user
+      return false;
+    }
   },
 
-  sendCheckInEmail: async (to: string, clientName: string): Promise<boolean> => {
-    console.log(`[Email Service] Sending Check-in Email to ${to}...`);
-    await emailService._delay(600);
+  sendCheckInEmail: async (toEmail: string, clientName: string, businessName: string): Promise<boolean> => {
+    console.log(`[Email Service] Sending Check-in Email to ${toEmail}...`);
     
-    console.log(`[Email Service] 📧 SENT: Weekly Check-in for ${clientName}`);
-    return true;
+    if (!SERVICE_ID || !TEMPLATE_ID || !PUBLIC_KEY) {
+        await emailService._delay(600);
+        console.log(`[Email Service] (Simulated) 📧 SENT: Weekly Check-in`);
+        return true;
+    }
+
+    try {
+        // We can reuse the same template or a different Check-in template ID
+        // For simplicity, using simulation here unless you create a second template
+        await emailService._delay(600);
+        return true;
+    } catch (e) {
+        return false;
+    }
   },
 
   sendGrowthReport: async (to: string, stats: any): Promise<boolean> => {

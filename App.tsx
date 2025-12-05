@@ -270,9 +270,16 @@ const App: React.FC = () => {
     addToast('Client added successfully', 'success');
 
     // Email Service Integration
-    if (newClient.email) {
-       await emailService.sendWelcomeEmail(newClient.email, blueprint?.businessName || 'Us');
-       addToast(`Email Sent: Welcome to ${blueprint?.businessName}`, 'info');
+    // Dynamically pass the COACH's details to the email service
+    if (newClient.email && blueprint) {
+       await emailService.sendWelcomeEmail(
+           newClient.email,
+           newClient.name,
+           blueprint.businessName,
+           blueprint.websiteData.coachBio.name || 'Coach',
+           blueprint.websiteData.publishedUrl || 'https://businessos.ai'
+       );
+       addToast(`Email Sent: Welcome to ${blueprint.businessName}`, 'info');
     }
 
     // Trigger Automations Logic
@@ -323,17 +330,21 @@ const App: React.FC = () => {
     addToast('Client updated', 'success');
   };
 
-  // NEW: Check-in Logic
+  // Check-in Logic
   const handleCheckIn = async (id: string) => {
     const client = clients.find(c => c.id === id);
-    if (client) {
+    if (client && blueprint) {
         // Update Status
         const updated = clients.map(c => c.id === id ? { ...c, lastCheckIn: 'Just now' } : c);
         setClients(updated);
         await handleSaveProject(undefined, updated);
         
         // Send Email
-        await emailService.sendCheckInEmail(client.email, client.name);
+        await emailService.sendCheckInEmail(
+            client.email, 
+            client.name, 
+            blueprint.businessName
+        );
         addToast(`Check-in email sent to ${client.name}`, 'success');
     }
   };

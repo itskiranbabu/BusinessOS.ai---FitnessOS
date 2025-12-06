@@ -1,76 +1,69 @@
-
+// src/services/emailService.ts
 import emailjs from '@emailjs/browser';
 
-// Load keys from environment via process.env (polyfilled in vite.config.ts)
-const SERVICE_ID = process.env.VITE_EMAILJS_SERVICE_ID || '';
-const TEMPLATE_ID = process.env.VITE_EMAILJS_TEMPLATE_ID || '';
-const PUBLIC_KEY = process.env.VITE_EMAILJS_PUBLIC_KEY || '';
+// Vite will inline these at build time
+const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
+const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '';
+const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
+
+console.log('[Email Service] Loaded config:', {
+  SERVICE_ID_SET: !!SERVICE_ID,
+  TEMPLATE_ID_SET: !!TEMPLATE_ID,
+  PUBLIC_KEY_SET: !!PUBLIC_KEY,
+});
+
+async function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export const emailService = {
-  _delay: (ms: number) => new Promise(resolve => setTimeout(resolve, ms)),
-
   /**
-   * Sends a dynamic welcome email.
+   * Send a welcome email to a new lead.
+   * Does not block the UI on failure.
    */
-  sendWelcomeEmail: async (
-    toEmail: string, 
+  async sendWelcomeEmail(
+    toEmail: string,
     clientName: string,
     businessName: string,
     coachName: string,
     publicUrl: string
-  ): Promise<boolean> => {
-    console.log(`[Email Service] Attempting to send to ${toEmail}...`);
+  ): Promise<boolean> {
+    console.log('[Email Service] sendWelcomeEmail called with:', {
+      toEmail,
+      clientName,
+      businessName,
+      coachName,
+      publicUrl,
+    });
 
-    // Fallback if keys are missing
     if (!SERVICE_ID || !TEMPLATE_ID || !PUBLIC_KEY) {
-      console.warn("[Email Service] Keys missing. Check Vercel Env Vars. Simulating success.");
-      await emailService._delay(800);
+      console.warn(
+        '[Email Service] EmailJS keys missing. Skipping real email and simulating success.'
+      );
+      await delay(500);
       return true;
     }
+
+    const templateParams = {
+      to_email: toEmail,
+      client_name: clientName,
+      business_name: businessName,
+      coach_name: coachName,
+      public_url: publicUrl,
+    };
 
     try {
-      const templateParams = {
-        to_email: toEmail,
-        client_name: clientName,
-        business_name: businessName,
-        coach_name: coachName,
-        public_url: publicUrl,
-        client_goal: "Transforming your health",
-      };
-
-      // Explicitly pass PUBLIC_KEY here to avoid init() issues
-      await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY);
-      
-      console.log(`[Email Service] ✅ REAL EMAIL SENT via EmailJS to ${toEmail}`);
+      const result = await emailjs.send(
+        SERVICE_ID,
+        TEMPLATE_ID,
+        templateParams,
+        PUBLIC_KEY
+      );
+      console.log('[Email Service] ✅ REAL EMAIL SENT via EmailJS:', result.status, result.text);
       return true;
     } catch (error) {
-      console.error("[Email Service] ❌ Failed to send real email:", error);
-      return false; 
+      console.error('[Email Service] ❌ Failed to send real email:', error);
+      return false;
     }
   },
-
-  sendCheckInEmail: async (toEmail: string, clientName: string, businessName: string): Promise<boolean> => {
-    // For check-ins, we currently simulate
-    await emailService._delay(600);
-    console.log(`[Email Service] (Simulated) Check-in sent to ${toEmail}`);
-    return true;
-  },
-
-  // --- NEW: Real-Time Communication Helpers ---
-
-  sendWhatsApp: (phone: string, message: string) => {
-    if (!phone) return;
-    // Remove non-numeric chars
-    const cleanPhone = phone.replace(/[^0-9]/g, ''); 
-    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
-  },
-
-  sendSMS: (phone: string, message: string) => {
-    if (!phone) return;
-    // Remove non-numeric chars
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    const url = `sms:${cleanPhone}?body=${encodeURIComponent(message)}`;
-    window.location.href = url;
-  }
 };

@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Lead, ClientStatus, Client } from '../types';
-import { UserPlus, Mail, Clock, CheckCircle2, Archive, MessageSquare, Phone } from 'lucide-react';
+import { UserPlus, Mail, Clock, CheckCircle2, Archive, MessageSquare } from 'lucide-react';
 
 interface LeadsProps {
   leads: Lead[];
@@ -9,10 +10,8 @@ interface LeadsProps {
 }
 
 const Leads: React.FC<LeadsProps> = ({ leads, onConvert, onUpdateStatus }) => {
-  // Safe filtering
-  const safeLeads = leads || [];
-  const newLeads = safeLeads.filter(l => l.status === 'New');
-  const otherLeads = safeLeads.filter(l => l.status !== 'New');
+  const newLeads = leads.filter(l => l.status === 'New');
+  const otherLeads = leads.filter(l => l.status !== 'New');
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -83,13 +82,8 @@ const LeadCard: React.FC<{
                 <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                     <Mail size={14} className="text-slate-400" /> {lead.email}
                 </div>
-                {lead.phone && (
-                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                        <Phone size={14} className="text-slate-400" /> {lead.phone}
-                    </div>
-                )}
-                <div className="text-sm text-slate-500 dark:text-slate-500 italic bg-slate-50 dark:bg-slate-800 p-2 rounded-lg mt-2">
-                    "Source: {lead.source || 'Website'}"
+                <div className="text-sm text-slate-500 dark:text-slate-500 italic bg-slate-50 dark:bg-slate-800 p-2 rounded-lg">
+                    "Source: {lead.source}"
                 </div>
             </div>
 
@@ -108,7 +102,7 @@ const LeadCard: React.FC<{
                         onClick={() => onUpdateStatus(lead.id, 'Contacted')}
                         className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition-colors"
                     >
-                        <MessageSquare size={16} /> Contacted
+                        <MessageSquare size={16} /> Mark Contacted
                     </button>
                 )}
 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { BusinessBlueprint, Lead } from '../types';
 import { Check, Send, Sparkles, CheckCircle2 } from 'lucide-react';
@@ -8,15 +9,7 @@ interface PublicSiteProps {
 }
 
 const PublicSite: React.FC<PublicSiteProps> = ({ blueprint }) => {
-  // Safe access to prevent crashes if data is partial
-  const websiteData = blueprint.websiteData || {
-    heroHeadline: "Welcome",
-    heroSubhead: "",
-    ctaText: "Join Now",
-    pricing: [],
-    coachBio: { name: "", headline: "", story: "" }
-  };
-  
+  const { websiteData } = blueprint;
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState(''); // NEW STATE
@@ -34,19 +27,17 @@ const PublicSite: React.FC<PublicSiteProps> = ({ blueprint }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !name) return;
-    
     setLoading(true);
     try {
       const newLead: Lead = {
         id: Math.random().toString(36).substr(2, 9),
         name,
         email,
-        phone, // Include phone in the saved object
+        phone, // SAVE PHONE
         status: 'New',
         createdAt: new Date().toISOString(),
         source: 'Website Capture'
       };
-      
       await storageService.saveLead(newLead);
       setSubmitted(true);
     } catch (error) {
@@ -93,7 +84,7 @@ const PublicSite: React.FC<PublicSiteProps> = ({ blueprint }) => {
         <div className="max-w-5xl mx-auto text-center">
             <h2 className="text-4xl font-bold mb-12">Plans & Pricing</h2>
             <div className="grid md:grid-cols-2 gap-8">
-                {websiteData.pricing?.map((plan, i) => (
+                {websiteData.pricing.map((plan, i) => (
                     <div key={i} className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
                         <h3 className="text-2xl font-bold mb-4">{plan.name}</h3>
                         <div className="text-4xl font-extrabold text-indigo-600 mb-6">{plan.price}</div>
@@ -111,9 +102,7 @@ const PublicSite: React.FC<PublicSiteProps> = ({ blueprint }) => {
                 <Sparkles size={40} className="text-white" />
             </div>
             <h2 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight">Ready to transform?</h2>
-            <p className="text-xl text-slate-400 mb-12">
-                Join the waitlist for {blueprint.suggestedPrograms?.[0] || 'Exclusive Coaching'} and get early access.
-            </p>
+            <p className="text-xl text-slate-400 mb-12">Join the waitlist for {blueprint.suggestedPrograms[0]} and get exclusive early access.</p>
 
             {submitted ? (
                 <div className="bg-green-500/10 border border-green-500/20 p-8 rounded-3xl animate-slide-up">
@@ -135,7 +124,7 @@ const PublicSite: React.FC<PublicSiteProps> = ({ blueprint }) => {
                             <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-5 py-4 rounded-xl bg-slate-900/50 border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all placeholder:text-slate-600" placeholder="john@example.com" />
                         </div>
                     </div>
-                    {/* PHONE FIELD */}
+                    {/* NEW PHONE FIELD */}
                     <div>
                         <label className="block text-sm font-bold mb-2 ml-1 text-slate-300">Phone Number (Optional)</label>
                         <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-5 py-4 rounded-xl bg-slate-900/50 border border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none text-white transition-all placeholder:text-slate-600" placeholder="+1 (555) 000-0000" />

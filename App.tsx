@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -42,7 +41,6 @@ const App: React.FC = () => {
   const [growthPlan, setGrowthPlan] = useState<GrowthPlan | undefined>(undefined);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  // ... (Keep existing helpers: addToast, removeToast, toggleTheme, useEffects)
   const addToast = (message: string, type: ToastType = 'info') => {
     const id = Math.random().toString(36).substr(2, 9);
     setToasts(prev => [...prev, { id, message, type }]);
@@ -60,18 +58,29 @@ const App: React.FC = () => {
     else { setIsDarkMode(true); document.documentElement.classList.add('dark'); }
   }, []);
 
+  // REAL-TIME POLLING FOR LEADS & EVENTS
   useEffect(() => {
-    if (isAuthenticated && hasOnboarded) {
+    if (isAuthenticated && hasOnboarded && !isPublicRoute) {
         const interval = setInterval(async () => {
+            // 1. Fetch JSON blob for events/clients
             const saved = await storageService.loadProject();
-            if (saved) {
-                if (saved.data.leads && saved.data.leads.length !== leads.length) setLeads(saved.data.leads);
-                if (saved.data.events && saved.data.events.length !== events.length) setEvents(saved.data.events);
+            if (saved && saved.data.events) {
+                if (saved.data.events.length !== events.length) setEvents(saved.data.events);
             }
-        }, 10000); 
+            
+            // 2. Fetch SQL Leads
+            const fetchedLeads = await storageService.fetchLeads();
+            if (fetchedLeads.length !== leads.length) {
+                // New lead detected!
+                if (fetchedLeads.length > leads.length && leads.length > 0) {
+                    addToast("New Lead Captured!", "success");
+                }
+                setLeads(fetchedLeads);
+            }
+        }, 5000); // Check every 5s
         return () => clearInterval(interval);
     }
-  }, [isAuthenticated, hasOnboarded, leads.length, events.length]);
+  }, [isAuthenticated, hasOnboarded, leads.length, events.length, isPublicRoute]);
 
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
@@ -101,11 +110,13 @@ const App: React.FC = () => {
              else setBlueprint(null);
         } else if (isAuthenticated) {
             const saved = await storageService.loadProject();
+            const fetchedLeads = await storageService.fetchLeads(); // Fetch initial leads
+            
             if (saved) {
                 setBlueprint(saved.data.blueprint);
                 setClients(saved.data.clients || []);
                 setAutomations(saved.data.automations || []);
-                setLeads(saved.data.leads || []);
+                setLeads(fetchedLeads); // Set leads from SQL
                 setEvents(saved.data.events || []);
                 setGrowthPlan(saved.data.growthPlan);
                 fetchRevenueData().then(setRevenueData);
@@ -134,26 +145,32 @@ const App: React.FC = () => {
     const bp = updatedBlueprint || blueprint;
     const cl = updatedClients || clients;
     const au = updatedAutomations || automations;
-    const le = updatedLeads || leads;
     const gp = updatedGrowthPlan || growthPlan;
     const ev = updatedEvents || events;
 
+    // NOTE: Leads are saved via separate SQL calls now, so we don't need to pass them to saveProject
+    // but for type compatibility we pass the current state.
+    
     if (bp) {
-      const projectData: ProjectData = { blueprint: bp, clients: cl, automations: au, leads: le, events: ev, growthPlan: gp };
+      const projectData: ProjectData = { blueprint: bp, clients: cl, automations: au, leads: leads, events: ev, growthPlan: gp };
       await storageService.saveProject(projectData);
     }
   };
 
   const handleUpdateClients = (newClients: Client[]) => { setClients(newClients); handleSaveProject(undefined, newClients); };
   const handleUpdateAutomations = (newAutomations: Automation[]) => { setAutomations(newAutomations); handleSaveProject(undefined, undefined, newAutomations); };
-  const handleUpdateLeads = (newLeads: Lead[]) => { setLeads(newLeads); handleSaveProject(undefined, undefined, undefined, newLeads); };
+  const handleUpdateLeads = async (newLeads: Lead[]) => { 
+      // For status updates, we update SQL individually
+      // This is a simplified prop handler for Leads component
+      setLeads(newLeads); 
+  };
+  
   const handleUpdateBlueprint = (updates: Partial<BusinessBlueprint>) => { if (blueprint) { const newBlueprint = { ...blueprint, ...updates }; setBlueprint(newBlueprint); handleSaveProject(newBlueprint); addToast('Changes saved successfully', 'success'); } };
   const handleUpdateGrowthPlan = (plan: GrowthPlan) => { setGrowthPlan(plan); handleSaveProject(undefined, undefined, undefined, undefined, plan); }
   const handleLogin = (email: string) => { setUserEmail(email); setIsAuthenticated(true); addToast(`Welcome back, ${email}`, 'success'); };
   const handleLogout = async () => { await authService.signOut(); setIsAuthenticated(false); setUserEmail(null); setBlueprint(null); setHasOnboarded(false); addToast('Signed out successfully', 'info'); };
   const handleOnboardingComplete = async (data: BusinessBlueprint) => { setBlueprint(data); const initialClients: Client[] = [{ id: '1', name: 'Example Lead', email: 'lead@example.com', status: ClientStatus.LEAD, program: 'Interest', joinDate: new Date().toISOString().split('T')[0], lastCheckIn: 'N/A', progress: 0 }]; setClients(initialClients); const initialAutomations: Automation[] = [{ id: '1', name: 'Weekly Client Check-in', type: 'WhatsApp', trigger: 'Every Monday 8AM', status: 'Active', stats: { sent: 0, opened: '0%' } }, { id: '2', name: 'New Lead Welcome', type: 'Email', trigger: 'On Sign Up', status: 'Active', stats: { sent: 0, opened: '0%' } }]; setAutomations(initialAutomations); fetchRevenueData().then(setRevenueData); setHasOnboarded(true); await handleSaveProject(data, initialClients, initialAutomations, [], undefined, []); addToast('Business initialized successfully!', 'success'); };
 
-  // --- UPDATED ADD CLIENT LOGIC ---
   const handleAddClient = async (clientData: Partial<Client>) => {
     const newClient: Client = {
       id: Math.random().toString(36).substr(2, 9),
@@ -173,18 +190,18 @@ const App: React.FC = () => {
     setClients(updatedClients); 
     addToast('Client added successfully', 'success');
 
-    // CRITICAL CRASH FIX: Use optional chaining (?.) for coachBio and publishedUrl
     if (newClient.email && blueprint) {
        await emailService.sendWelcomeEmail(
            newClient.email,
            newClient.name,
            blueprint.businessName,
-           blueprint.websiteData?.coachBio?.name || 'Coach', // FIXED: Safe Access
-           blueprint.websiteData?.publishedUrl || 'https://businessos.ai' // FIXED: Safe Access
+           blueprint.websiteData?.coachBio?.name || 'Coach', 
+           blueprint.websiteData?.publishedUrl || 'https://businessos.ai' 
        );
        addToast(`Email Sent: Welcome to ${blueprint.businessName}`, 'info');
     }
 
+    // ... Automation logic (same as before) ...
     const triggeredAutomations = automations.filter(a => 
       a.status === 'Active' && 
       (a.trigger.toLowerCase().includes('sign up') || a.trigger.toLowerCase().includes('new lead') || a.trigger.toLowerCase().includes('client'))
@@ -239,45 +256,41 @@ const App: React.FC = () => {
         const updated = clients.map(c => c.id === id ? { ...c, lastCheckIn: 'Just now' } : c);
         setClients(updated);
         await handleSaveProject(undefined, updated);
-        // CRITICAL FIX: Safe access for check-in email too
         await emailService.sendCheckInEmail(client.email, client.name, blueprint.businessName);
         addToast(`Check-in logged for ${client.name}`, 'success');
     }
   };
 
-  // ... (Other handlers)
   const handleDeleteClient = (id: string) => { const updated = clients.filter(c => c.id !== id); handleUpdateClients(updated); addToast('Client removed', 'info'); };
   
   const handleCaptureLead = (email: string) => {
+    // This is for internal manual capture
     handleAddClient({ name: 'Website Lead', email: email, status: ClientStatus.LEAD, program: 'Waitlist', tags: ['Website', 'Waitlist'] });
     addToast('New lead captured from website!', 'success');
   };
 
   const handleConvertLead = (lead: Lead) => {
-    // Ensure phone is passed during conversion
     handleAddClient({ name: lead.name, email: lead.email, phone: lead.phone, status: ClientStatus.LEAD, program: 'Converted', tags: ['From Lead'] });
-    const updatedLeads = leads.map(l => l.id === lead.id ? { ...l, status: 'Converted' as const } : l);
-    handleUpdateLeads(updatedLeads);
-    addToast('Lead converted to client!', 'success');
+    // Update status in SQL
+    storageService.updateLead(lead.id, { status: 'Converted' }).then(() => {
+        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: 'Converted' as const } : l));
+        addToast('Lead converted to client!', 'success');
+    });
   };
 
-  const handleUpdateLeadStatus = (id: string, status: Lead['status']) => { const updatedLeads = leads.map(l => l.id === id ? { ...l, status } : l); handleUpdateLeads(updatedLeads); };
+  const handleUpdateLeadStatus = (id: string, status: Lead['status']) => { 
+      storageService.updateLead(id, { status }).then(() => {
+          setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
+      });
+  };
+  
   const handleUpdateContentPlan = (newPlan: SocialPost[]) => { if (blueprint) { handleUpdateBlueprint({ contentPlan: newPlan }); } };
   const handleRegenerateContent = async (): Promise<SocialPost[]> => { if (blueprint) { addToast('Generating new content strategy...', 'info'); const plan = await regenerateContentPlan(blueprint.niche); addToast('Content plan refreshed', 'success'); return plan; } return []; };
 
   const handleInstallTemplate = (newConfig: ProjectData) => {
-      // OVERWRITE LOGIC
       setBlueprint(newConfig.blueprint);
       setAutomations(newConfig.automations);
-      // Keep existing clients/leads/events if needed, or overwrite? For MVP we keep existing data but update blueprint/automations
-      // Actually, standard behavior for "Install System" is usually overwrite or merge.
-      // Let's overwrite blueprint and automations, keep clients.
-      const merged: ProjectData = {
-          ...newConfig,
-          clients: clients,
-          leads: leads,
-          events: events
-      };
+      const merged: ProjectData = { ...newConfig, clients: clients, leads: leads, events: events };
       handleSaveProject(merged.blueprint, merged.clients, merged.automations);
       addToast('System installed successfully!', 'success');
       setCurrentView(AppView.DASHBOARD);

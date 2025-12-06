@@ -1,4 +1,3 @@
-
 export enum AppView {
   ONBOARDING = 'ONBOARDING',
   DASHBOARD = 'DASHBOARD',
@@ -34,13 +33,16 @@ export interface Template {
   description: string;
   category: TemplateCategory;
   niche: string;
-  price: number; // in cents
+  price: number;
   is_public: boolean;
   install_count: number;
   rating: number;
   preview_image_url?: string;
-  config: ProjectData; // The blueprint snapshot
+  config: ProjectData; 
   created_at: string;
+  version: string;
+  verified: boolean;
+  lastUpdated: string;
 }
 
 export interface Client {
@@ -52,14 +54,14 @@ export interface Client {
   program: string;
   joinDate: string;
   lastCheckIn: string;
-  progress: number; // 0-100
+  progress: number;
   notes?: string;
   tags?: string[];
 }
 
 export interface Lead {
   id: string;
-  projectId?: string;
+  project_id?: string; // Changed to match DB column
   name: string;
   email: string;
   phone?: string;

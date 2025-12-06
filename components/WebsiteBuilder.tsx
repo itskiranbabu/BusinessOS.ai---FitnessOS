@@ -237,19 +237,46 @@ const WebsiteBuilder: React.FC<WebsiteBuilderProps> = ({ blueprint, onUpdate, on
                             <label className="text-xs font-bold text-slate-500 uppercase">Coach Name</label>
                             <input 
                                 value={editData.coachBio?.name || ''}
-                                onChange={e => setEditData({...editData, coachBio: {...(editData.coachBio || {}), name: e.target.value}})}
+                                onChange={e => setEditData({
+                                    ...editData, 
+                                    coachBio: {
+                                        name: '', 
+                                        headline: '', 
+                                        story: '', 
+                                        ...(editData.coachBio || {}), 
+                                        name: e.target.value
+                                    }
+                                })}
                                 className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white text-sm focus:border-primary-500 outline-none"
                             />
                              <label className="text-xs font-bold text-slate-500 uppercase">Headline</label>
                             <input 
                                 value={editData.coachBio?.headline || ''}
-                                onChange={e => setEditData({...editData, coachBio: {...(editData.coachBio || {}), headline: e.target.value}})}
+                                onChange={e => setEditData({
+                                    ...editData, 
+                                    coachBio: {
+                                        name: '', 
+                                        headline: '', 
+                                        story: '', 
+                                        ...(editData.coachBio || {}), 
+                                        headline: e.target.value
+                                    }
+                                })}
                                 className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white text-sm focus:border-primary-500 outline-none"
                             />
                             <label className="text-xs font-bold text-slate-500 uppercase">Story</label>
                             <textarea 
                                 value={editData.coachBio?.story || ''}
-                                onChange={e => setEditData({...editData, coachBio: {...(editData.coachBio || {}), story: e.target.value}})}
+                                onChange={e => setEditData({
+                                    ...editData, 
+                                    coachBio: {
+                                        name: '', 
+                                        headline: '', 
+                                        story: '', 
+                                        ...(editData.coachBio || {}), 
+                                        story: e.target.value
+                                    }
+                                })}
                                 className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white text-sm focus:border-primary-500 outline-none"
                                 rows={5}
                             />

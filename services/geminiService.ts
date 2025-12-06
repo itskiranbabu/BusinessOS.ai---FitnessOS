@@ -91,6 +91,36 @@ const blueprintSchema = {
   required: ["businessName", "niche", "websiteData", "contentPlan", "suggestedPrograms"]
 };
 
+// NEW: Function to enhance the user's raw input
+export const enhanceUserPrompt = async (rawInput: string): Promise<string> => {
+  if (!apiKey || !rawInput.trim()) return rawInput;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: `You are a professional prompt engineer for a business building AI.
+      
+      User Input: "${rawInput}"
+      
+      Task: Rewrite this input into a specific, high-ticket fitness business concept. 
+      Include: The specific target audience, the unique mechanism/method, and the pricing model (high ticket/hybrid).
+      Keep it under 30 words. Make it sound professional and lucrative.
+      
+      Example Input: "yoga for moms"
+      Example Output: "A high-ticket post-natal recovery yoga program for executive mothers, focusing on core rebuilding and stress management via a hybrid digital-coaching model."`,
+      config: {
+        temperature: 0.7,
+        maxOutputTokens: 100,
+      },
+    });
+
+    return response.text?.trim() || rawInput;
+  } catch (error) {
+    console.error("Enhancement failed", error);
+    return rawInput;
+  }
+};
+
 export const generateBusinessBlueprint = async (userDescription: string): Promise<BusinessBlueprint | null> => {
   try {
     if (!apiKey) {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { generateBusinessBlueprint } from '../services/geminiService';
+import { generateBusinessBlueprint, enhanceUserPrompt } from '../services/geminiService';
 import { BusinessBlueprint } from '../types';
-import { Dumbbell, Sparkles, ArrowRight, CheckCircle2, Cpu, BrainCircuit, Rocket, Target, Globe } from 'lucide-react';
+import { Dumbbell, Sparkles, ArrowRight, CheckCircle2, Cpu, BrainCircuit, Rocket, Target, Globe, Wand2, Zap } from 'lucide-react';
 
 interface OnboardingProps {
   onComplete: (blueprint: BusinessBlueprint) => void;
@@ -10,6 +10,7 @@ interface OnboardingProps {
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [description, setDescription] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
 
   const steps = [
@@ -19,6 +20,27 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     { text: "GENERATING PSYCHOLOGICAL COPY...", icon: Sparkles },
     { text: "DEPLOYING BUSINESS BLUEPRINT...", icon: Cpu }
   ];
+
+  const suggestions = [
+    "High-Ticket Weight Loss for Corporate Dads",
+    "Post-Natal Yoga & Recovery for Executives",
+    "Strength & Conditioning for Amateur Golfers",
+    "Marathon Prep for Busy Professionals"
+  ];
+
+  const handleEnhance = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!description.trim()) return;
+    
+    setIsEnhancing(true);
+    const enhanced = await enhanceUserPrompt(description);
+    setDescription(enhanced);
+    setIsEnhancing(false);
+  };
+
+  const handleSuggestion = (suggestion: string) => {
+    setDescription(suggestion);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,20 +141,47 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         <div className="bg-slate-900/80 p-1 rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-xl relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary-600 to-cyan-600 rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
             <div className="bg-[#0B1121] rounded-[20px] p-8 md:p-10 relative">
-                <label className="block text-xs font-bold text-slate-400 mb-4 uppercase tracking-widest flex items-center gap-2">
-                    <Sparkles size={14} className="text-cyan-400" /> System Input
-                </label>
+                <div className="flex justify-between items-center mb-4">
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <Sparkles size={14} className="text-cyan-400" /> System Input
+                    </label>
+                    <button 
+                        onClick={handleEnhance}
+                        disabled={isEnhancing || !description}
+                        className="text-xs bg-primary-600/20 text-primary-300 hover:bg-primary-600 hover:text-white px-3 py-1.5 rounded-lg border border-primary-500/30 transition-all flex items-center gap-2 disabled:opacity-50"
+                    >
+                        <Wand2 size={12} className={isEnhancing ? "animate-spin" : ""} /> 
+                        {isEnhancing ? "Enhancing..." : "AI Enhance Prompt"}
+                    </button>
+                </div>
+                
                 <form onSubmit={handleSubmit}>
-                    <textarea
-                    className="w-full h-40 p-5 border border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-white bg-black/50 text-lg placeholder:text-slate-600 shadow-inner transition-all mb-6 font-medium"
-                    placeholder="e.g. I help busy corporate dads lose 20lbs in 90 days using kettlebells and intermittent fasting..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    />
+                    <div className="relative">
+                        <textarea
+                            className="w-full h-40 p-5 border border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-white bg-black/50 text-lg placeholder:text-slate-600 shadow-inner transition-all mb-4 font-medium"
+                            placeholder="Describe your expertise, niche, or who you want to help..."
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mb-6">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider py-1.5">Try:</span>
+                        {suggestions.map((s, i) => (
+                            <button
+                                key={i}
+                                type="button"
+                                onClick={() => handleSuggestion(s)}
+                                className="text-xs bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 px-3 py-1.5 rounded-full border border-slate-700 transition-all flex items-center gap-1"
+                            >
+                                {s} <Zap size={10} className="text-yellow-500" />
+                            </button>
+                        ))}
+                    </div>
                     
                     <button
                     type="submit"
-                    disabled={!description.trim()}
+                    disabled={!description.trim() || isEnhancing}
                     className="w-full bg-white text-slate-950 py-5 rounded-xl font-bold text-lg hover:bg-cyan-50 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.01] shadow-xl"
                     >
                         Initialize Blueprint <ArrowRight size={20} />

@@ -240,10 +240,7 @@ const WebsiteBuilder: React.FC<WebsiteBuilderProps> = ({ blueprint, onUpdate, on
                                 onChange={e => setEditData({
                                     ...editData, 
                                     coachBio: {
-                                        name: '', 
-                                        headline: '', 
-                                        story: '', 
-                                        ...(editData.coachBio || {}), 
+                                        ...(editData.coachBio || { name: '', headline: '', story: '' }), 
                                         name: e.target.value
                                     }
                                 })}
@@ -255,10 +252,7 @@ const WebsiteBuilder: React.FC<WebsiteBuilderProps> = ({ blueprint, onUpdate, on
                                 onChange={e => setEditData({
                                     ...editData, 
                                     coachBio: {
-                                        name: '', 
-                                        headline: '', 
-                                        story: '', 
-                                        ...(editData.coachBio || {}), 
+                                        ...(editData.coachBio || { name: '', headline: '', story: '' }), 
                                         headline: e.target.value
                                     }
                                 })}
@@ -270,10 +264,7 @@ const WebsiteBuilder: React.FC<WebsiteBuilderProps> = ({ blueprint, onUpdate, on
                                 onChange={e => setEditData({
                                     ...editData, 
                                     coachBio: {
-                                        name: '', 
-                                        headline: '', 
-                                        story: '', 
-                                        ...(editData.coachBio || {}), 
+                                        ...(editData.coachBio || { name: '', headline: '', story: '' }), 
                                         story: e.target.value
                                     }
                                 })}
